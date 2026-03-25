@@ -1,22 +1,54 @@
 package engine
 
-import "testing"
+import (
+	"testing"
+)
 
 type TestComponent struct {
 	testInt int
 	testStr string
 }
 
-func TestComponentArrayDelete(t *testing.T) {
-	var e1 EntityID = 0
-	var e2 EntityID = 1
-	var e3 EntityID = 2
+func TestComponentArrayAdd(t *testing.T) {
+	var e0 EntityID = 0
 	ca := NewComponentArray[TestComponent]()
-	ca.Set(e1, TestComponent{testInt: 1, testStr: "one"})
-	ca.Set(e2, TestComponent{testInt: 2, testStr: "two"})
-	ca.Set(e3, TestComponent{testInt: 3, testStr: "three"})
-	t.Error(423)
-	for i, cpnt := range ca.arr {
-		t.Logf("arridx %d / %d %s", i, cpnt.testInt, cpnt.testStr)
+	cpnt0 := TestComponent{testInt: 0, testStr: "zero"}
+	ca.Add(e0, cpnt0)
+	ca.Add(e0, cpnt0)
+}
+
+func TestComponentArrayGet(t *testing.T) {
+	var e0 EntityID = 0
+	ca := NewComponentArray[TestComponent]()
+	cpnt, err := ca.Get(e0)
+	if cpnt != nil || err == nil {
+		t.Error("Component array should return an error when getting from empty array")
+	}
+}
+
+func TestComponentArrayDelete(t *testing.T) {
+	var e0 EntityID = 0
+	var e1 EntityID = 1
+	var e2 EntityID = 2
+	ca := NewComponentArray[TestComponent]()
+	cpnt0 := TestComponent{testInt: 0, testStr: "zero"}
+	cpnt1 := TestComponent{testInt: 1, testStr: "one"}
+	cpnt2 := TestComponent{testInt: 2, testStr: "two"}
+	ca.Add(e0, cpnt0)
+	ca.Add(e1, cpnt1)
+	ca.Add(e2, cpnt2)
+	ca.Remove(e0)
+	if len(ca.component2EntityMap) != 2 {
+		t.Error("component2EntityMap has bad length")
+	}
+	if len(ca.entity2ComponentMap) != 2 {
+		t.Error("entity2ComponentMap has bad length")
+	}
+	retCpnt2, err := ca.Get(e2)
+	if err != nil {
+		t.Error("Got error instead of component 2")
+	}
+	if cpnt2.testInt != retCpnt2.testInt || cpnt2.testStr != retCpnt2.testStr {
+		t.Errorf("Got wrong component2 %v", retCpnt2)
 	}
 }

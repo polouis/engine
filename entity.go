@@ -1,29 +1,84 @@
 package engine
 
+import (
+	"fmt"
+	"iter"
+)
+
 const MaxEntities = 10_000
 
 type ComponentArray[T any] struct {
-	arr []T
+	arr                 []T
+	entity2ComponentMap map[EntityID]uint
+	component2EntityMap map[uint]EntityID
+	count               uint
 }
 
-func (ca *ComponentArray[T]) Get(e EntityID) *T {
-	return &ca.arr[e]
-}
-
-func (ca *ComponentArray[T]) Set(e EntityID, c T) {
-	// Do not grow automatically the slice when exceeding capacity to prevent pointers
-	// // returned by component getter to become dangling pointers.
-	if int(e) >= len(ca.arr) {
-		panic("ComponentArray: entity ID exceeds capacity")
+func (ca *ComponentArray[T]) Get(e EntityID) (*T, error) {
+	i, ok := ca.entity2ComponentMap[e]
+	if !ok {
+		return nil, fmt.Errorf("ComponentArray: entity %d has no component in component array %T", e, ca)
 	}
-	ca.arr[e] = c
+	return &ca.arr[i], nil
 }
 
-// func (ca *ComponentArray[T]) Remove(e EntityID) {
-// }
+func (ca *ComponentArray[T]) Add(e EntityID, c T) {
+	i, exists := ca.entity2ComponentMap[e]
+	if !exists && ca.count >= MaxEntities {
+		// Do not grow automatically the slice when exceeding capacity to prevent
+		// pointers returned by component getter to become dangling pointers.
+		// TODO add component type in message
+		panic(fmt.Sprintf("ComponentArray: component count exceeds capacity for component array %T", ca))
+	}
+
+	if exists {
+		ca.arr[i] = c
+	} else {
+		ca.arr[ca.count] = c
+		ca.entity2ComponentMap[e] = ca.count
+		ca.component2EntityMap[ca.count] = e
+		ca.count++
+	}
+}
+
+// Keep array dense. Move last active component in place of removed one.
+func (ca *ComponentArray[T]) Remove(e EntityID) {
+	deletedIdx, exists := ca.entity2ComponentMap[e]
+	if !exists {
+		return
+	}
+	lastIdx := ca.count - 1
+	lastE := ca.component2EntityMap[lastIdx]
+
+	delete(ca.entity2ComponentMap, e)
+	delete(ca.component2EntityMap, deletedIdx)
+	ca.count--
+
+	if deletedIdx != lastIdx {
+		ca.arr[deletedIdx] = ca.arr[lastIdx]
+		ca.entity2ComponentMap[lastE] = deletedIdx
+		delete(ca.component2EntityMap, lastIdx)
+		ca.component2EntityMap[deletedIdx] = lastE
+	}
+}
+
+func (ca *ComponentArray[T]) All() iter.Seq2[EntityID, *T] {
+	return func(yield func(EntityID, *T) bool) {
+		for i := range ca.count {
+			if !yield(ca.component2EntityMap[i], &ca.arr[i]) {
+				return
+			}
+		}
+	}
+}
 
 func NewComponentArray[T any]() *ComponentArray[T] {
-	return &ComponentArray[T]{arr: make([]T, MaxEntities)}
+	return &ComponentArray[T]{
+		count:               0,
+		arr:                 make([]T, MaxEntities),
+		entity2ComponentMap: make(map[EntityID]uint),
+		component2EntityMap: make(map[uint]EntityID),
+	}
 }
 
 // void insertData(size_t entityId, T component)
@@ -123,12 +178,12 @@ type NameComponent struct {
 	name string
 }
 
-func GetNameComponent(w *World, e EntityID) *NameComponent {
+func GetNameComponent(w *World, e EntityID) (*NameComponent, error) {
 	return w.Store(NameCID).(*ComponentArray[NameComponent]).Get(e)
 }
 
-func SetNameComponent(w *World, e EntityID, c NameComponent) {
-	w.Store(NameCID).(*ComponentArray[NameComponent]).Set(e, c)
+func AddNameComponent(w *World, e EntityID, c NameComponent) {
+	w.Store(NameCID).(*ComponentArray[NameComponent]).Add(e, c)
 }
 
 //   class Transform: public Base
@@ -172,10 +227,10 @@ type TransformComponent struct {
 	scale    Vector3
 }
 
-func GetTransformComponent(w *World, e EntityID) *TransformComponent {
+func GetTransformComponent(w *World, e EntityID) (*TransformComponent, error) {
 	return w.Store(TransformCID).(*ComponentArray[TransformComponent]).Get(e)
 }
 
-func SetTransformComponent(w *World, e EntityID, c TransformComponent) {
-	w.Store(TransformCID).(*ComponentArray[TransformComponent]).Set(e, c)
+func AddTransformComponent(w *World, e EntityID, c TransformComponent) {
+	w.Store(TransformCID).(*ComponentArray[TransformComponent]).Add(e, c)
 }
