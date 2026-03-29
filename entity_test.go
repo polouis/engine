@@ -13,8 +13,8 @@ func TestComponentArrayAdd(t *testing.T) {
 	var e0 EntityID = 0
 	ca := NewComponentArray[TestComponent]()
 	cpnt0 := TestComponent{testInt: 0, testStr: "zero"}
-	ca.Add(e0, cpnt0)
-	ca.Add(e0, cpnt0)
+	ca.Upsert(e0, cpnt0)
+	ca.Upsert(e0, cpnt0)
 }
 
 func TestComponentArrayGet(t *testing.T) {
@@ -34,9 +34,9 @@ func TestComponentArrayDelete(t *testing.T) {
 	cpnt0 := TestComponent{testInt: 0, testStr: "zero"}
 	cpnt1 := TestComponent{testInt: 1, testStr: "one"}
 	cpnt2 := TestComponent{testInt: 2, testStr: "two"}
-	ca.Add(e0, cpnt0)
-	ca.Add(e1, cpnt1)
-	ca.Add(e2, cpnt2)
+	ca.Upsert(e0, cpnt0)
+	ca.Upsert(e1, cpnt1)
+	ca.Upsert(e2, cpnt2)
 	ca.Remove(e0)
 	if len(ca.component2EntityMap) != 2 {
 		t.Error("component2EntityMap has bad length")

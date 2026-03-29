@@ -7,6 +7,12 @@ import (
 
 const MaxEntities = 10_000
 
+type EntityID uint
+
+/******************************************************************************
+ * COMPONENTS
+ *****************************************************************************/
+
 type ComponentArray[T any] struct {
 	arr                 []T
 	entity2ComponentMap map[EntityID]uint
@@ -22,7 +28,7 @@ func (ca *ComponentArray[T]) Get(e EntityID) (*T, error) {
 	return &ca.arr[i], nil
 }
 
-func (ca *ComponentArray[T]) Add(e EntityID, c T) {
+func (ca *ComponentArray[T]) Upsert(e EntityID, c T) {
 	i, exists := ca.entity2ComponentMap[e]
 	if !exists && ca.count >= MaxEntities {
 		// Do not grow automatically the slice when exceeding capacity to prevent
@@ -42,10 +48,10 @@ func (ca *ComponentArray[T]) Add(e EntityID, c T) {
 }
 
 // Keep array dense. Move last active component in place of removed one.
-func (ca *ComponentArray[T]) Remove(e EntityID) {
+func (ca *ComponentArray[T]) Remove(e EntityID) error {
 	deletedIdx, exists := ca.entity2ComponentMap[e]
 	if !exists {
-		return
+		return fmt.Errorf("Failed to delete %d as it is not present in component array %T", e, ca)
 	}
 	lastIdx := ca.count - 1
 	lastE := ca.component2EntityMap[lastIdx]
@@ -60,6 +66,8 @@ func (ca *ComponentArray[T]) Remove(e EntityID) {
 		delete(ca.component2EntityMap, lastIdx)
 		ca.component2EntityMap[deletedIdx] = lastE
 	}
+
+	return nil
 }
 
 func (ca *ComponentArray[T]) All() iter.Seq2[EntityID, *T] {
@@ -72,6 +80,11 @@ func (ca *ComponentArray[T]) All() iter.Seq2[EntityID, *T] {
 	}
 }
 
+func (ca *ComponentArray[T]) Has(e EntityID) bool {
+	_, exists := ca.entity2ComponentMap[e]
+	return exists
+}
+
 func NewComponentArray[T any]() *ComponentArray[T] {
 	return &ComponentArray[T]{
 		count:               0,
@@ -81,36 +94,6 @@ func NewComponentArray[T any]() *ComponentArray[T] {
 	}
 }
 
-// void insertData(size_t entityId, T component)
-// {
-//   if (entityId >= components.size())
-//   {
-//     components.resize(entityId + 1);
-//   }
-//   components[entityId] = component;
-// }
-// bool hasData(size_t entityId) const
-// {
-//   return entityId < components.size() && components[entityId].has_value();
-// }
-// T& getData(size_t entityId)
-// {
-//   return components[entityId].value();
-// }
-// const T& getData(size_t entityId) const
-// {
-//   return components[entityId].value();
-// }
-// const std::vector<std::optional<T>>& getComponents() const
-// {
-//   return components;
-// }
-// std::vector<std::optional<T>>& getComponents()
-// {
-//   return components;
-// }
-
-type EntityID int
 type ComponentID int
 type storeFactory func() any
 
@@ -128,11 +111,9 @@ func RegisterComponent[T any]() ComponentID {
 	return id
 }
 
-// func NewComponentID() ComponentID {
-// 	id := nextComponentID
-// 	nextComponentID++
-// 	return id
-// }
+/******************************************************************************
+ * WORLD
+ *****************************************************************************/
 
 type World struct {
 	stores []any // each value is a *ComponentArray[T]
@@ -162,64 +143,19 @@ func (w *World) NewEntity() EntityID {
 	return id
 }
 
-// type World struct {
-// 	Mesh2ds    ComponentArray[Mesh2dComponent]
-// 	Sprites    ComponentArray[SpriteComponent]
-// 	Velocities ComponentArray[VelocityComponent]
-// }
-
-/**
+/******************************************************************************
  * BASE COMPONENTS
- */
+ *****************************************************************************/
+
+type NameComponent struct {
+	Name string
+}
 
 var NameCID = RegisterComponent[NameComponent]()
 
-type NameComponent struct {
-	name string
+func GetNameComponents(w *World) *ComponentArray[NameComponent] {
+	return w.Store(NameCID).(*ComponentArray[NameComponent])
 }
-
-func GetNameComponent(w *World, e EntityID) (*NameComponent, error) {
-	return w.Store(NameCID).(*ComponentArray[NameComponent]).Get(e)
-}
-
-func AddNameComponent(w *World, e EntityID, c NameComponent) {
-	w.Store(NameCID).(*ComponentArray[NameComponent]).Add(e, c)
-}
-
-//   class Transform: public Base
-//   {
-//   public:
-//       Transform(ECS::Entity entity)
-//         : Base(entity),
-//           position{0.0f, 0.0f, 0.0f},
-//           rotation{0.0f, 0.0f, 0.0f},
-//           scale{1.0f, 1.0f, 1.0f}
-//       {
-//       }
-//       Transform(ECS::Entity entity, float x, float y, float z)
-//         : Base(entity),
-//           position{x, y, z},
-//           rotation{0.0f, 0.0f, 0.0f},
-//           scale{1.0f, 1.0f, 1.0f}
-//       {
-//       }
-//       ~Transform() {}
-//       // Position
-//       void setPosition(const geometry::Vector3& vec) { position = vec; }
-//       const geometry::Vector3& getPosition() const { return position; }
-//       float getX() const { return position.getX(); }
-//       float getY() const { return position.getY(); }
-//       float getZ() const { return position.getZ(); }
-//       // Rotation (in radians)
-//       void setRotation(float x, float y, float z) { rotation.set(x, y, z); }
-//       const geometry::Vector3& getRotation() const { return rotation; }
-//       geometry::Vector3& getRotation() { return rotation; }
-//       // Scale
-//       void setScale(float x, float y, float z) { scale.set(x, y, z); }
-//       void setUniformScale(float s) { scale.set(s, s, s); }
-//       const geometry::Vector3& getScale() const { return scale; }
-
-var TransformCID = RegisterComponent[TransformComponent]()
 
 type TransformComponent struct {
 	position Vector3
@@ -227,10 +163,8 @@ type TransformComponent struct {
 	scale    Vector3
 }
 
-func GetTransformComponent(w *World, e EntityID) (*TransformComponent, error) {
-	return w.Store(TransformCID).(*ComponentArray[TransformComponent]).Get(e)
-}
+var TransformCID = RegisterComponent[TransformComponent]()
 
-func AddTransformComponent(w *World, e EntityID, c TransformComponent) {
-	w.Store(TransformCID).(*ComponentArray[TransformComponent]).Add(e, c)
+func GetTransformComponents(w *World) *ComponentArray[TransformComponent] {
+	return w.Store(TransformCID).(*ComponentArray[TransformComponent])
 }
