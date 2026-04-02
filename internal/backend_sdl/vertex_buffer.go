@@ -8,23 +8,12 @@ import (
 
 	"github.com/Zyko0/go-sdl3/examples/gpu/assets"
 	"github.com/Zyko0/go-sdl3/sdl"
+	"github.com/polouis/engine/types"
 )
 
 type BasicVertexBuffer struct {
 	pipeline     *sdl.GPUGraphicsPipeline
 	vertexBuffer *sdl.GPUBuffer
-}
-
-type PositionColorVertex struct {
-	X, Y, Z    float32
-	R, G, B, A uint8
-}
-
-func NewPosColorVert(x, y, z float32, r, g, b, a uint8) PositionColorVertex {
-	return PositionColorVertex{
-		X: x, Y: y, Z: z,
-		R: r, G: g, B: b, A: a,
-	}
 }
 
 func loadShader(
@@ -91,7 +80,7 @@ func loadShader(
 	return shader, nil
 }
 
-func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice) error {
+func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbData []types.PositionColorVertex) error {
 
 	// create shaders
 
@@ -122,7 +111,7 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice) erro
 			Slot:             0,
 			InputRate:        sdl.GPU_VERTEXINPUTRATE_VERTEX,
 			InstanceStepRate: 0,
-			Pitch:            uint32(unsafe.Sizeof(PositionColorVertex{})),
+			Pitch:            uint32(unsafe.Sizeof(types.PositionColorVertex{})),
 		},
 	}
 
@@ -166,7 +155,7 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice) erro
 
 	e.vertexBuffer, err = device.CreateBuffer(&sdl.GPUBufferCreateInfo{
 		Usage: sdl.GPU_BUFFERUSAGE_VERTEX,
-		Size:  uint32(unsafe.Sizeof(PositionColorVertex{}) * 3),
+		Size:  uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(vbData))),
 	})
 	if err != nil {
 		return errors.New("failed to create buffer: " + err.Error())
@@ -176,7 +165,7 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice) erro
 
 	transferBuffer, err := device.CreateTransferBuffer(&sdl.GPUTransferBufferCreateInfo{
 		Usage: sdl.GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-		Size:  uint32(unsafe.Sizeof(PositionColorVertex{}) * 3),
+		Size:  uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(vbData))),
 	})
 	if err != nil {
 		return errors.New("failed to create transfer buffer: " + err.Error())
@@ -188,12 +177,12 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice) erro
 	}
 
 	vertexData := unsafe.Slice(
-		(*PositionColorVertex)(unsafe.Pointer(transferDataPtr)), 3,
+		(*types.PositionColorVertex)(unsafe.Pointer(transferDataPtr)), len(vbData),
 	)
 
-	vertexData[0] = NewPosColorVert(-1, -1, 0, 255, 0, 0, 255)
-	vertexData[1] = NewPosColorVert(1, -1, 0, 0, 255, 0, 255)
-	vertexData[2] = NewPosColorVert(0, 1, 0, 0, 0, 255, 255)
+	for i := 0; i < len(vbData); i++ {
+		vertexData[i] = vbData[i]
+	}
 
 	device.UnmapTransferBuffer(transferBuffer)
 
@@ -214,7 +203,7 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice) erro
 		&sdl.GPUBufferRegion{
 			Buffer: e.vertexBuffer,
 			Offset: 0,
-			Size:   uint32(unsafe.Sizeof(PositionColorVertex{}) * 3),
+			Size:   uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(vbData))),
 		},
 		false,
 	)

@@ -101,9 +101,9 @@ func (b *BackendSDL) draw(update func()) error {
 	return nil
 }
 
-func (b *BackendSDL) NewVertexBuffer() types.VertexBuffer {
+func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) types.VertexBuffer {
 	var vb BasicVertexBuffer
-	vb.Init(b.window, b.device)
+	vb.Init(b.window, b.device, vbData)
 	return &vb
 }
 

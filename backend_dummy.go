@@ -15,7 +15,7 @@ func (b *backendDummy) Run(init func(), update func(), release func()) error {
 	return nil
 }
 
-func (b *backendDummy) NewVertexBuffer() types.VertexBuffer {
+func (b *backendDummy) NewVertexBuffer(vbData []types.PositionColorVertex) types.VertexBuffer {
 	return &DummyVertexBuffer{}
 }
 
