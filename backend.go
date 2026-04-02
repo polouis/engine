@@ -1,6 +1,11 @@
 package engine
 
-import "fmt"
+import (
+	"fmt"
+
+	backendsdl "github.com/polouis/engine/internal/backend_sdl"
+	"github.com/polouis/engine/types"
+)
 
 type BackendType string
 
@@ -9,17 +14,13 @@ const (
 	Dummy BackendType = "dummy"
 )
 
-type Backend interface {
-	Run(*World)
-}
-
-func NewBackend(s string) Backend {
-	switch s {
-	case "sdl":
-		return &backendSDL{}
-	case "dummy":
+func NewBackend(bt BackendType) types.Backend {
+	switch bt {
+	case SDL:
+		return &backendsdl.BackendSDL{}
+	case Dummy:
 		return &backendDummy{}
 	default:
-		panic(fmt.Sprintf("Cannot instanciate unknown backend '%s'", s))
+		panic(fmt.Sprintf("Cannot instanciate unknown backend '%v'", bt))
 	}
 }

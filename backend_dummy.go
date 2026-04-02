@@ -1,9 +1,26 @@
 package engine
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/polouis/engine/types"
+)
 
 type backendDummy struct{}
 
-func (b *backendDummy) Run(w *World) {
+type DummyVertexBuffer struct{}
+
+func (b *backendDummy) Run(init func(), update func(), release func()) error {
 	fmt.Println("I'm a dummy backend")
+	return nil
+}
+
+func (b *backendDummy) NewVertexBuffer() types.VertexBuffer {
+	return &DummyVertexBuffer{}
+}
+
+func (b *backendDummy) Draw(vb types.VertexBuffer) {
+}
+
+func (b *backendDummy) Release(vb types.VertexBuffer) {
 }
