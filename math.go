@@ -11,11 +11,6 @@ type Vector3 struct {
 	x, y, z float32
 }
 
-type Vertex struct {
-	x, y, z    float32
-	r, g, b, a float32
-}
-
 // typedef struct Matrix4x4
 // {
 // 	float m11, m12, m13, m14;

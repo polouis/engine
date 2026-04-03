@@ -215,13 +215,13 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbDa
 	return nil
 }
 
-func (e *BasicVertexBuffer) draw(renderPass *sdl.GPURenderPass) error {
+func (e *BasicVertexBuffer) draw(renderPass *sdl.GPURenderPass, len uint32) error {
 
 	renderPass.BindGraphicsPipeline(e.pipeline)
 	renderPass.BindVertexBuffers([]sdl.GPUBufferBinding{
 		{Buffer: e.vertexBuffer, Offset: 0},
 	})
-	renderPass.DrawPrimitives(3, 1, 0, 0)
+	renderPass.DrawPrimitives(len, 1, 0, 0)
 
 	return nil
 }

@@ -10,10 +10,10 @@ func GetVelocityComponents(w *World) *ComponentArray[VelocityComponent] {
 	return w.Store(VelocityCID).(*ComponentArray[VelocityComponent])
 }
 
-func UpdatePhysicsSystem(w *World, deltaTime uint64) {
+func UpdatePhysicsSystem(ctx *Context, deltaTime uint64) {
 
-	for e, velocityCpnt := range GetVelocityComponents(w).All() {
-		transformCpnt, _ := GetTransformComponents(w).Get(e)
+	for e, velocityCpnt := range GetVelocityComponents(ctx.W).All() {
+		transformCpnt, _ := GetTransformComponents(ctx.W).Get(e)
 
 		velocityCpnt.velocity.x += velocityCpnt.velocity.x * float32(deltaTime) / 1e9
 		velocityCpnt.velocity.y += velocityCpnt.velocity.y * float32(deltaTime) / 1e9

@@ -14,8 +14,8 @@ func NewPosColorVert(x, y, z float32, r, g, b, a uint8) PositionColorVertex {
 
 type VertexBuffer interface{}
 type Backend interface {
-	Run(init func(), update func(), release func()) error
+	Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error
 	NewVertexBuffer([]PositionColorVertex) VertexBuffer
-	Draw(vb VertexBuffer)
+	Draw(vb VertexBuffer, len uint32)
 	Release(vb VertexBuffer)
 }

@@ -1,0 +1,2 @@
+- VB add bind method
+- 

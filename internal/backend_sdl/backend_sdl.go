@@ -16,14 +16,14 @@ type BackendSDL struct {
 }
 
 type drawable interface {
-	draw(rp *sdl.GPURenderPass) error
+	draw(rp *sdl.GPURenderPass, len uint32) error
 }
 
 type releasable interface {
 	release(window *sdl.Window, device *sdl.GPUDevice)
 }
 
-func (b *BackendSDL) Run(init func(), update func(), release func()) error {
+func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error {
 	defer binsdl.Load().Unload() // sdl.LoadLibrary(sdl.Path())
 	defer sdl.Quit()
 
@@ -48,7 +48,7 @@ func (b *BackendSDL) Run(init func(), update func(), release func()) error {
 
 	b.device.ClaimWindow(b.window)
 
-	init()
+	initCallback()
 
 	sdl.RunLoop(func() error {
 		var event sdl.Event
@@ -57,18 +57,19 @@ func (b *BackendSDL) Run(init func(), update func(), release func()) error {
 			if event.Type == sdl.EVENT_QUIT {
 				return sdl.EndLoop
 			}
-			b.draw(update)
+			b.update(updateCallback)
 		}
 
 		return nil
 	})
 
-	release()
+	releaseCallback()
 
 	return nil
 }
 
-func (b *BackendSDL) draw(update func()) error {
+func (b *BackendSDL) update(updateCallback func(uint64)) error {
+	ticksNS := sdl.TicksNS()
 	cmdbuf, err := b.device.AcquireCommandBuffer()
 	if err != nil {
 		return errors.New("failed to acquire command buffer: " + err.Error())
@@ -91,7 +92,7 @@ func (b *BackendSDL) draw(update func()) error {
 			[]sdl.GPUColorTargetInfo{colorTargetInfo}, nil,
 		)
 
-		update()
+		updateCallback(ticksNS)
 
 		b.rp.End()
 	}
@@ -107,9 +108,9 @@ func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) types.V
 	return &vb
 }
 
-func (b *BackendSDL) Draw(vb types.VertexBuffer) {
+func (b *BackendSDL) Draw(vb types.VertexBuffer, len uint32) {
 	if d, ok := vb.(drawable); ok {
-		d.draw(b.rp)
+		d.draw(b.rp, len)
 	}
 }
 
