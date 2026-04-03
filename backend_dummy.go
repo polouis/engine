@@ -19,7 +19,7 @@ func (b *backendDummy) NewVertexBuffer(vbData []types.PositionColorVertex) types
 	return &DummyVertexBuffer{}
 }
 
-func (b *backendDummy) Draw(vb types.VertexBuffer, len uint32) {
+func (b *backendDummy) Draw(vb types.VertexBuffer) {
 }
 
 func (b *backendDummy) Release(vb types.VertexBuffer) {

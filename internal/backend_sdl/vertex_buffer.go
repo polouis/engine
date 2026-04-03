@@ -14,6 +14,7 @@ import (
 type BasicVertexBuffer struct {
 	pipeline     *sdl.GPUGraphicsPipeline
 	vertexBuffer *sdl.GPUBuffer
+	len          uint32
 }
 
 func loadShader(
@@ -80,7 +81,9 @@ func loadShader(
 	return shader, nil
 }
 
-func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbData []types.PositionColorVertex) error {
+func (vb *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbData []types.PositionColorVertex) error {
+
+	vb.len = uint32(len(vbData))
 
 	// create shaders
 
@@ -143,7 +146,7 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbDa
 		FragmentShader: fragmentShader,
 	}
 
-	e.pipeline, err = device.CreateGraphicsPipeline(&pipelineCreateInfo)
+	vb.pipeline, err = device.CreateGraphicsPipeline(&pipelineCreateInfo)
 	if err != nil {
 		return errors.New("failed to create pipeline: " + err.Error())
 	}
@@ -153,7 +156,7 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbDa
 
 	// create vertex buffer
 
-	e.vertexBuffer, err = device.CreateBuffer(&sdl.GPUBufferCreateInfo{
+	vb.vertexBuffer, err = device.CreateBuffer(&sdl.GPUBufferCreateInfo{
 		Usage: sdl.GPU_BUFFERUSAGE_VERTEX,
 		Size:  uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(vbData))),
 	})
@@ -201,7 +204,7 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbDa
 			Offset:         0,
 		},
 		&sdl.GPUBufferRegion{
-			Buffer: e.vertexBuffer,
+			Buffer: vb.vertexBuffer,
 			Offset: 0,
 			Size:   uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(vbData))),
 		},
@@ -215,18 +218,18 @@ func (e *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbDa
 	return nil
 }
 
-func (e *BasicVertexBuffer) draw(renderPass *sdl.GPURenderPass, len uint32) error {
+func (vb *BasicVertexBuffer) draw(renderPass *sdl.GPURenderPass) error {
 
-	renderPass.BindGraphicsPipeline(e.pipeline)
+	renderPass.BindGraphicsPipeline(vb.pipeline)
 	renderPass.BindVertexBuffers([]sdl.GPUBufferBinding{
-		{Buffer: e.vertexBuffer, Offset: 0},
+		{Buffer: vb.vertexBuffer, Offset: 0},
 	})
-	renderPass.DrawPrimitives(len, 1, 0, 0)
+	renderPass.DrawPrimitives(vb.len, 1, 0, 0)
 
 	return nil
 }
 
-func (e *BasicVertexBuffer) release(window *sdl.Window, device *sdl.GPUDevice) {
-	device.ReleaseGraphicsPipeline(e.pipeline)
-	device.ReleaseBuffer(e.vertexBuffer)
+func (vb *BasicVertexBuffer) release(window *sdl.Window, device *sdl.GPUDevice) {
+	device.ReleaseGraphicsPipeline(vb.pipeline)
+	device.ReleaseBuffer(vb.vertexBuffer)
 }

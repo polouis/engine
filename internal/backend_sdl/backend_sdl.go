@@ -16,7 +16,7 @@ type BackendSDL struct {
 }
 
 type drawable interface {
-	draw(rp *sdl.GPURenderPass, len uint32) error
+	draw(rp *sdl.GPURenderPass) error
 }
 
 type releasable interface {
@@ -108,9 +108,9 @@ func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) types.V
 	return &vb
 }
 
-func (b *BackendSDL) Draw(vb types.VertexBuffer, len uint32) {
-	if d, ok := vb.(drawable); ok {
-		d.draw(b.rp, len)
+func (b *BackendSDL) Draw(vb types.VertexBuffer) {
+	if vbSdl, ok := vb.(drawable); ok {
+		vbSdl.draw(b.rp)
 	}
 }
 

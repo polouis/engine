@@ -16,6 +16,6 @@ type VertexBuffer interface{}
 type Backend interface {
 	Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error
 	NewVertexBuffer([]PositionColorVertex) VertexBuffer
-	Draw(vb VertexBuffer, len uint32)
+	Draw(vb VertexBuffer)
 	Release(vb VertexBuffer)
 }

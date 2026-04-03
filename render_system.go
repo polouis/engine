@@ -45,7 +45,7 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 	}
 
 	for _, mesh2dCpnt := range GetMesh2dComponents(ctx.W).All() {
-		ctx.B.Draw(mesh2dCpnt.VB, uint32(mesh2dCpnt.Len))
+		ctx.B.Draw(mesh2dCpnt.VB)
 	}
 }
 
