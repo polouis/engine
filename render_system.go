@@ -6,22 +6,25 @@ import (
 	"github.com/polouis/engine/types"
 )
 
-type Mesh2dComponent struct {
-	VB  types.VertexBuffer
-	Len uint
+type MeshComponent struct {
+	VB types.VertexBuffer
+	// TODO use it when implementing shared buffer between multiple entities
+	Len    uint32
+	Offset uint32
 }
 
-func NewMesh2d(ctx *Context, vertices []types.PositionColorVertex) Mesh2dComponent {
-	return Mesh2dComponent{
-		VB:  ctx.B.NewVertexBuffer(vertices),
-		Len: uint(len(vertices)),
+func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex) MeshComponent {
+	return MeshComponent{
+		VB:     ctx.B.NewVertexBuffer(vertices),
+		Len:    uint32(len(vertices)),
+		Offset: 0,
 	}
 }
 
-var Mesh2dCID = RegisterComponent[Mesh2dComponent]()
+var MeshCID = RegisterComponent[MeshComponent]()
 
-func GetMesh2dComponents(w *World) *ComponentArray[Mesh2dComponent] {
-	return w.Store(Mesh2dCID).(*ComponentArray[Mesh2dComponent])
+func GetMesh2dComponents(w *World) *ComponentArray[MeshComponent] {
+	return w.Store(MeshCID).(*ComponentArray[MeshComponent])
 }
 
 type SpriteComponent struct {
