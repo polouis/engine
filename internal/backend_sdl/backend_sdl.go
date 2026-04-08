@@ -3,16 +3,20 @@ package backendsdl
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/Zyko0/go-sdl3/bin/binsdl"
 	"github.com/Zyko0/go-sdl3/sdl"
+	"github.com/polouis/engine/internal/backend"
 	"github.com/polouis/engine/types"
 )
 
 type BackendSDL struct {
-	window *sdl.Window
-	device *sdl.GPUDevice
-	rp     *sdl.GPURenderPass
+	window       *sdl.Window
+	device       *sdl.GPUDevice
+	rp           *sdl.GPURenderPass
+	keyStates    [types.LastKey + 1]bool
+	buttonStates [types.ButtonLast + 1]bool
 }
 
 type drawable interface {
@@ -48,17 +52,64 @@ func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), relea
 
 	b.device.ClaimWindow(b.window)
 
+	var gp *sdl.Gamepad
+
 	initCallback()
 
 	sdl.RunLoop(func() error {
 		var event sdl.Event
 
 		for sdl.PollEvent(&event) {
-			if event.Type == sdl.EVENT_QUIT {
+			switch event.Type {
+			case sdl.EVENT_QUIT:
 				return sdl.EndLoop
+			case sdl.EVENT_GAMEPAD_ADDED:
+				evt := event.GamepadDeviceEvent()
+				if gp == nil {
+					gp, err = evt.Which.OpenGamepad()
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "failed to open gamepad ID %d: %s\n", evt.Which, err.Error())
+					}
+				}
 			}
-			b.update(updateCallback)
 		}
+
+		for i := types.ButtonFirst; i <= types.ButtonLast; i++ {
+			b.buttonStates[i] = false
+		}
+		if gp != nil {
+			if gp.Button(sdl.GAMEPAD_BUTTON_DPAD_UP) {
+				b.buttonStates[types.ButtonUp] = true
+			}
+			if gp.Button(sdl.GAMEPAD_BUTTON_DPAD_DOWN) {
+				b.buttonStates[types.ButtonDown] = true
+			}
+			if gp.Button(sdl.GAMEPAD_BUTTON_DPAD_LEFT) {
+				b.buttonStates[types.ButtonLeft] = true
+			}
+			if gp.Button(sdl.GAMEPAD_BUTTON_DPAD_RIGHT) {
+				b.buttonStates[types.ButtonRight] = true
+			}
+		}
+
+		for i := types.FirstKey; i <= types.LastKey; i++ {
+			b.keyStates[i] = false
+		}
+		keyStates := sdl.GetKeyboardState()
+		if keyStates[sdl.SCANCODE_UP] || keyStates[sdl.SCANCODE_W] {
+			b.keyStates[types.Up] = true
+		}
+		if keyStates[sdl.SCANCODE_DOWN] || keyStates[sdl.SCANCODE_S] {
+			b.keyStates[types.Down] = true
+		}
+		if keyStates[sdl.SCANCODE_LEFT] || keyStates[sdl.SCANCODE_A] {
+			b.keyStates[types.Left] = true
+		}
+		if keyStates[sdl.SCANCODE_RIGHT] || keyStates[sdl.SCANCODE_D] {
+			b.keyStates[types.Right] = true
+		}
+
+		b.update(updateCallback)
 
 		return nil
 	})
@@ -102,20 +153,28 @@ func (b *BackendSDL) update(updateCallback func(uint64)) error {
 	return nil
 }
 
-func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) types.VertexBuffer {
+func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBuffer {
 	var vb BasicVertexBuffer
 	vb.Init(b.window, b.device, vbData)
 	return &vb
 }
 
-func (b *BackendSDL) Draw(vb types.VertexBuffer) {
+func (b *BackendSDL) Draw(vb backend.VertexBuffer) {
 	if vbSdl, ok := vb.(drawable); ok {
 		vbSdl.draw(b.rp)
 	}
 }
 
-func (b *BackendSDL) Release(vb types.VertexBuffer) {
+func (b *BackendSDL) Release(vb backend.VertexBuffer) {
 	if d, ok := vb.(releasable); ok {
 		d.release(b.window, b.device)
 	}
+}
+
+func (b *BackendSDL) GetKeyState(k types.KeyType) bool {
+	return b.keyStates[k]
+}
+
+func (b *BackendSDL) GetButtonState(btn types.ButtonType) bool {
+	return b.buttonStates[btn]
 }

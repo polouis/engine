@@ -3,11 +3,12 @@ package engine
 import (
 	"fmt"
 
+	"github.com/polouis/engine/internal/backend"
 	"github.com/polouis/engine/types"
 )
 
 type MeshComponent struct {
-	VB types.VertexBuffer
+	VB backend.VertexBuffer
 	// TODO use it when implementing shared buffer between multiple entities
 	Len    uint32
 	Offset uint32
@@ -15,7 +16,7 @@ type MeshComponent struct {
 
 func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex) MeshComponent {
 	return MeshComponent{
-		VB:     ctx.B.NewVertexBuffer(vertices),
+		VB:     ctx.b.NewVertexBuffer(vertices),
 		Len:    uint32(len(vertices)),
 		Offset: 0,
 	}
@@ -48,12 +49,12 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 	}
 
 	for _, mesh2dCpnt := range GetMesh2dComponents(ctx.W).All() {
-		ctx.B.Draw(mesh2dCpnt.VB)
+		ctx.b.Draw(mesh2dCpnt.VB)
 	}
 }
 
 func ReleaseRenderSystem(ctx *Context) {
 	for _, mesh2dCpnt := range GetMesh2dComponents(ctx.W).All() {
-		ctx.B.Release(mesh2dCpnt.VB)
+		ctx.b.Release(mesh2dCpnt.VB)
 	}
 }
