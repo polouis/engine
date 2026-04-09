@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"unsafe"
 
 	"github.com/Zyko0/go-sdl3/bin/binsdl"
 	"github.com/Zyko0/go-sdl3/sdl"
@@ -14,9 +15,12 @@ import (
 type BackendSDL struct {
 	window       *sdl.Window
 	device       *sdl.GPUDevice
-	rp           *sdl.GPURenderPass
 	keyStates    [types.LastKey + 1]bool
 	buttonStates [types.ButtonLast + 1]bool
+
+	// Move this in a render context
+	cb *sdl.GPUCommandBuffer
+	rp *sdl.GPURenderPass
 }
 
 type drawable interface {
@@ -121,12 +125,13 @@ func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), relea
 
 func (b *BackendSDL) update(updateCallback func(uint64)) error {
 	ticksNS := sdl.TicksNS()
-	cmdbuf, err := b.device.AcquireCommandBuffer()
+	var err error
+	b.cb, err = b.device.AcquireCommandBuffer()
 	if err != nil {
 		return errors.New("failed to acquire command buffer: " + err.Error())
 	}
 
-	swapchainTexture, err := cmdbuf.WaitAndAcquireGPUSwapchainTexture(b.window)
+	swapchainTexture, err := b.cb.WaitAndAcquireGPUSwapchainTexture(b.window)
 	if err != nil {
 		return errors.New("failed to acquire swapchain texture: " + err.Error())
 	}
@@ -139,7 +144,7 @@ func (b *BackendSDL) update(updateCallback func(uint64)) error {
 			StoreOp:    sdl.GPU_STOREOP_STORE,
 		}
 
-		b.rp = cmdbuf.BeginRenderPass(
+		b.rp = b.cb.BeginRenderPass(
 			[]sdl.GPUColorTargetInfo{colorTargetInfo}, nil,
 		)
 
@@ -148,14 +153,16 @@ func (b *BackendSDL) update(updateCallback func(uint64)) error {
 		b.rp.End()
 	}
 
-	cmdbuf.Submit()
+	b.cb.Submit()
 
 	return nil
 }
 
 func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBuffer {
 	var vb BasicVertexBuffer
-	vb.Init(b.window, b.device, vbData)
+	if err := vb.Init(b.window, b.device, vbData); err != nil {
+		panic("NewVertexBuffer: " + err.Error())
+	}
 	return &vb
 }
 
@@ -177,4 +184,11 @@ func (b *BackendSDL) GetKeyState(k types.KeyType) bool {
 
 func (b *BackendSDL) GetButtonState(btn types.ButtonType) bool {
 	return b.buttonStates[btn]
+}
+
+func (b *BackendSDL) PushVertexUniformData(u backend.Mesh2dUniform) {
+	b.cb.PushVertexUniformData(0, unsafe.Slice(
+		(*byte)(unsafe.Pointer(&u)),
+		unsafe.Sizeof(u),
+	))
 }

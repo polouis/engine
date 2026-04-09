@@ -40,15 +40,21 @@ func GetSpriteComponents(w *World) *ComponentArray[SpriteComponent] {
 	return w.Store(VelocityCID).(*ComponentArray[SpriteComponent])
 }
 
-func LoadRenderSystem(ctx *Context) {
-}
-
 func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 	for e, velocityCpnt := range GetVelocityComponents(ctx.W).All() {
 		fmt.Printf("Rendering entity %d with component %T\n", e, velocityCpnt)
 	}
 
-	for _, mesh2dCpnt := range GetMesh2dComponents(ctx.W).All() {
+	for e, mesh2dCpnt := range GetMesh2dComponents(ctx.W).All() {
+		transform, err := GetTransformComponents(ctx.W).Get(e)
+		var u backend.Mesh2dUniform
+		if err == nil {
+			u = backend.Mesh2dUniform{X: transform.Position.X, Y: transform.Position.Y}
+		} else {
+			u = backend.Mesh2dUniform{X: 0, Y: 0}
+		}
+		ctx.b.PushVertexUniformData(u)
+
 		ctx.b.Draw(mesh2dCpnt.VB)
 	}
 }

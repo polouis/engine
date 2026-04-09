@@ -33,7 +33,6 @@ func (ca *ComponentArray[T]) Upsert(e EntityID, c T) {
 	if !exists && ca.count >= MaxEntities {
 		// Do not grow automatically the slice when exceeding capacity to prevent
 		// pointers returned by component getter to become dangling pointers.
-		// TODO add component type in message
 		panic(fmt.Sprintf("ComponentArray: component count exceeds capacity for component array %T", ca))
 	}
 
@@ -158,9 +157,9 @@ func GetNameComponents(w *World) *ComponentArray[NameComponent] {
 }
 
 type TransformComponent struct {
-	position Vector3
-	rotation Vector3
-	scale    Vector3
+	Position Vector3
+	Rotation Vector3
+	Scale    Vector3
 }
 
 var TransformCID = RegisterComponent[TransformComponent]()

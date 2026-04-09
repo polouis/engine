@@ -33,3 +33,7 @@ func (b *BackendDummy) GetKeyState(k types.KeyType) bool {
 func (b *BackendDummy) GetButtonState(btn types.ButtonType) bool {
 	return false
 }
+
+func (b *BackendDummy) PushVertexUniformData(u backend.Mesh2dUniform) {
+
+}

@@ -15,15 +15,15 @@ func UpdatePhysicsSystem(ctx *Context, deltaTime uint64) {
 	for e, velocityCpnt := range GetVelocityComponents(ctx.W).All() {
 		transformCpnt, _ := GetTransformComponents(ctx.W).Get(e)
 
-		velocityCpnt.velocity.x += velocityCpnt.velocity.x * float32(deltaTime) / 1e9
-		velocityCpnt.velocity.y += velocityCpnt.velocity.y * float32(deltaTime) / 1e9
-		velocityCpnt.velocity.z += velocityCpnt.velocity.z * float32(deltaTime) / 1e9
+		velocityCpnt.velocity.X += velocityCpnt.velocity.X * float32(deltaTime) / 1e9
+		velocityCpnt.velocity.Y += velocityCpnt.velocity.Y * float32(deltaTime) / 1e9
+		velocityCpnt.velocity.Z += velocityCpnt.velocity.Z * float32(deltaTime) / 1e9
 
-		if transformCpnt.position.x > 320.0 || transformCpnt.position.x < 0.0 {
-			velocityCpnt.velocity.x = -velocityCpnt.velocity.x
+		if transformCpnt.Position.X > 320.0 || transformCpnt.Position.X < 0.0 {
+			velocityCpnt.velocity.X = -velocityCpnt.velocity.X
 		}
-		if transformCpnt.position.y > 200.0 || transformCpnt.position.y < 0.0 {
-			velocityCpnt.velocity.y = -velocityCpnt.velocity.y
+		if transformCpnt.Position.Y > 200.0 || transformCpnt.Position.Y < 0.0 {
+			velocityCpnt.velocity.Y = -velocityCpnt.velocity.Y
 		}
 	}
 }

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/Zyko0/go-sdl3/examples/gpu/assets"
 	"github.com/Zyko0/go-sdl3/sdl"
+	"github.com/polouis/engine/assets"
 	"github.com/polouis/engine/types"
 )
 
@@ -42,15 +42,15 @@ func loadShader(
 	// fmt.Printf("BACKEND FORMATS: %08b\n", backendFormats)
 
 	if backendFormats&sdl.GPU_SHADERFORMAT_SPIRV == sdl.GPU_SHADERFORMAT_SPIRV {
-		path = fmt.Sprintf("shaders/compiled/spirv/%s.spv", shaderFilename)
+		path = fmt.Sprintf("shaders/compiled/%s.spv", shaderFilename)
 		format = sdl.GPU_SHADERFORMAT_SPIRV
 		entrypoint = "main"
 	} else if backendFormats&sdl.GPU_SHADERFORMAT_MSL == sdl.GPU_SHADERFORMAT_MSL {
-		path = fmt.Sprintf("shaders/compiled/msl/%s.msl", shaderFilename)
+		path = fmt.Sprintf("shaders/compiled/%s.msl", shaderFilename)
 		format = sdl.GPU_SHADERFORMAT_MSL
 		entrypoint = "main0"
 	} else if backendFormats&sdl.GPU_SHADERFORMAT_DXIL == sdl.GPU_SHADERFORMAT_DXIL {
-		path = fmt.Sprintf("shaders/compiled/dxil/%s.dxil", shaderFilename)
+		path = fmt.Sprintf("shaders/compiled/%s.dxil", shaderFilename)
 		format = sdl.GPU_SHADERFORMAT_DXIL
 		entrypoint = "main"
 	} else {
@@ -88,17 +88,17 @@ func (vb *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbD
 	// create shaders
 
 	vertexShader, err := loadShader(
-		device, "PositionColor.vert", 0, 0, 0, 0,
+		device, "PositionColor.vert", 0, 1, 0, 0,
 	)
 	if err != nil {
-		return errors.New("failed to create vertex shader: " + err.Error())
+		panic("failed to create vertex shader: " + err.Error())
 	}
 
 	fragmentShader, err := loadShader(
 		device, "SolidColor.frag", 0, 0, 0, 0,
 	)
 	if err != nil {
-		return errors.New("failed to create fragment shader: " + err.Error())
+		panic("failed to create fragment shader: " + err.Error())
 	}
 
 	// create pipelines

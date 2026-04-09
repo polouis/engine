@@ -8,7 +8,7 @@ type Rect struct {
 }
 
 type Vector3 struct {
-	x, y, z float32
+	X, Y, Z float32
 }
 
 // typedef struct Matrix4x4

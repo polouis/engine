@@ -6,17 +6,16 @@ tasks:
 
   compile_vert_shaders:
     # desc: Compile vertex shaders
-    sources: ['shaders/source/*.vert.hlsl']
+    sources: ['assets/shaders/source/*.vert.hlsl']
     generates: ['shaders/compiled/*.spv']
     cmds:
       - for: sources
-        cmd: "{{.VULKAN_SDK}}/bin/glslc -fshader-stage=vertex -o shaders/compiled/{{trimSuffix \".hlsl\" (base .ITEM)}}.spv {{.ITEM}}"
+        cmd: "{{.VULKAN_SDK}}/bin/glslc -fshader-stage=vertex -o assets/shaders/compiled/{{trimSuffix \".hlsl\" (base .ITEM)}}.spv {{.ITEM}}"
 
   compile_frag_shaders:
     # desc: Compile vertex shaders
-    sources: ['shaders/source/*.frag.hlsl']
+    sources: ['assets/shaders/source/*.frag.hlsl']
     generates: ['shaders/compiled/*.spv']
     cmds:
       - for: sources
-        cmd: "{{.VULKAN_SDK}}/bin/glslc -fshader-stage=fragment -o shaders/compiled/{{trimSuffix \".hlsl\" (base .ITEM)}}.spv {{.ITEM}}"
-
+        cmd: "{{.VULKAN_SDK}}/bin/glslc -fshader-stage=fragment -o assets/shaders/compiled/{{trimSuffix \".hlsl\" (base .ITEM)}}.spv {{.ITEM}}"
