@@ -58,6 +58,15 @@ func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), relea
 
 	var gp *sdl.Gamepad
 
+	getDelatTime := func() func(uint64) uint64 {
+		var lastTickNS uint64
+		return func(tickNS uint64) uint64 {
+			delta := tickNS - lastTickNS
+			lastTickNS = tickNS
+			return delta
+		}
+	}()
+
 	initCallback()
 
 	sdl.RunLoop(func() error {
@@ -113,7 +122,7 @@ func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), relea
 			b.keyStates[types.Right] = true
 		}
 
-		b.update(updateCallback)
+		b.update(getDelatTime, updateCallback)
 
 		return nil
 	})
@@ -123,8 +132,9 @@ func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), relea
 	return nil
 }
 
-func (b *BackendSDL) update(updateCallback func(uint64)) error {
-	ticksNS := sdl.TicksNS()
+func (b *BackendSDL) update(getDeltaTime func(uint64) uint64, updateCallback func(uint64)) error {
+	deltaTime := getDeltaTime(sdl.TicksNS())
+
 	var err error
 	b.cb, err = b.device.AcquireCommandBuffer()
 	if err != nil {
@@ -148,7 +158,7 @@ func (b *BackendSDL) update(updateCallback func(uint64)) error {
 			[]sdl.GPUColorTargetInfo{colorTargetInfo}, nil,
 		)
 
-		updateCallback(ticksNS)
+		updateCallback(deltaTime)
 
 		b.rp.End()
 	}

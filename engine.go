@@ -32,3 +32,7 @@ func Run(ctx *Context, initCallback func(), updateCallback func(uint64), release
 func GetKeyState(ctx *Context, k types.KeyType) bool {
 	return ctx.b.GetKeyState(k)
 }
+
+func GetButtonState(ctx *Context, b types.ButtonType) bool {
+	return ctx.b.GetButtonState(b)
+}

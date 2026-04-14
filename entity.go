@@ -93,52 +93,36 @@ func NewComponentArray[T any]() *ComponentArray[T] {
 	}
 }
 
-type ComponentID int
-type storeFactory func() any
-
 var (
-	nextComponentID ComponentID
-	factories       []storeFactory
+	nextID EntityID
 )
-
-func RegisterComponent[T any]() ComponentID {
-	id := nextComponentID
-	nextComponentID++
-	factories = append(factories, func() any {
-		return NewComponentArray[T]()
-	})
-	return id
-}
 
 /******************************************************************************
  * WORLD
  *****************************************************************************/
 
 type World struct {
-	stores []any // each value is a *ComponentArray[T]
-	nextID EntityID
+	NameStore      *ComponentArray[NameComponent]
+	TransformStore *ComponentArray[TransformComponent]
+	VelocityStore  *ComponentArray[VelocityComponent]
+	MeshStore      *ComponentArray[MeshComponent]
 }
 
 func NewWorld() *World {
-	w := &World{
-		stores: make([]any, len(factories)),
+	return &World{
+		NameStore:      NewComponentArray[NameComponent](),
+		TransformStore: NewComponentArray[TransformComponent](),
+		VelocityStore:  NewComponentArray[VelocityComponent](),
+		MeshStore:      NewComponentArray[MeshComponent](),
 	}
-	for i, factory := range factories {
-		w.stores[i] = factory()
-	}
-	return w
-}
-
-func (w *World) Store(id ComponentID) any {
-	return w.stores[id]
 }
 
 func (w *World) NewEntity() EntityID {
-	if int(w.nextID) >= MaxEntities {
+	if int(nextID) >= MaxEntities {
 		panic("World: max entity count reached")
 	}
-	id := w.nextID
-	w.nextID++
+	id := nextID
+	nextID++
 	return id
 }
 
@@ -150,20 +134,8 @@ type NameComponent struct {
 	Name string
 }
 
-var NameCID = RegisterComponent[NameComponent]()
-
-func GetNameComponents(w *World) *ComponentArray[NameComponent] {
-	return w.Store(NameCID).(*ComponentArray[NameComponent])
-}
-
 type TransformComponent struct {
 	Position Vector3
 	Rotation Vector3
 	Scale    Vector3
-}
-
-var TransformCID = RegisterComponent[TransformComponent]()
-
-func GetTransformComponents(w *World) *ComponentArray[TransformComponent] {
-	return w.Store(TransformCID).(*ComponentArray[TransformComponent])
 }

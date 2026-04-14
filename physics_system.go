@@ -4,16 +4,10 @@ type VelocityComponent struct {
 	velocity Vector3
 }
 
-var VelocityCID = RegisterComponent[VelocityComponent]()
-
-func GetVelocityComponents(w *World) *ComponentArray[VelocityComponent] {
-	return w.Store(VelocityCID).(*ComponentArray[VelocityComponent])
-}
-
 func UpdatePhysicsSystem(ctx *Context, deltaTime uint64) {
 
-	for e, velocityCpnt := range GetVelocityComponents(ctx.W).All() {
-		transformCpnt, _ := GetTransformComponents(ctx.W).Get(e)
+	for e, velocityCpnt := range ctx.W.VelocityStore.All() {
+		transformCpnt, _ := ctx.W.TransformStore.Get(e)
 
 		velocityCpnt.velocity.X += velocityCpnt.velocity.X * float32(deltaTime) / 1e9
 		velocityCpnt.velocity.Y += velocityCpnt.velocity.Y * float32(deltaTime) / 1e9
