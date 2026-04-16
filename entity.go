@@ -10,7 +10,7 @@ const MaxEntities = 10_000
 type EntityID uint
 
 /******************************************************************************
- * COMPONENTS
+ * COMPONENT STORE
  *****************************************************************************/
 
 type ComponentArray[T any] struct {
