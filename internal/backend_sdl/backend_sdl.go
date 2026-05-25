@@ -54,7 +54,10 @@ func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), relea
 
 	fmt.Println("Driver: " + b.device.Driver())
 
-	b.device.ClaimWindow(b.window)
+	err = b.device.ClaimWindow(b.window)
+	if err != nil {
+		return errors.New("Claim window failed: " + err.Error())
+	}
 
 	var gp *sdl.Gamepad
 
