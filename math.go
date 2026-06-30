@@ -1,10 +1,15 @@
 package engine
 
 type Rect struct {
-	x uint
-	y uint
-	w uint
-	h uint
+	X uint
+	Y uint
+	W uint
+	H uint
+}
+
+type Size struct {
+	W uint
+	H uint
 }
 
 type Vector3 struct {

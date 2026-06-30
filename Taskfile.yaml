@@ -4,18 +4,59 @@ version: '3'
 
 tasks:
 
-  compile_vert_shaders:
-    # desc: Compile vertex shaders
-    sources: ['assets/shaders/source/*.vert.hlsl']
-    generates: ['assets/shaders/compiled/*.spv']
+  asset_vert_shader:
+    sources: ['asset/shaders/source/*.vert.hlsl']
+    generates: ['dist/asset/shader/*.vert.spv']
     cmds:
       - for: sources
-        cmd: "{{.VULKAN_SDK}}/bin/glslc -fshader-stage=vertex -o assets/shaders/compiled/{{trimSuffix \".hlsl\" (base .ITEM)}}.spv {{.ITEM}}"
+        cmd: "{{.VULKAN_SDK}}/bin/glslc -fshader-stage=vertex -o dist/asset/shader/{{trimSuffix \".hlsl\" (base .ITEM)}}.spv {{.ITEM}}"
 
-  compile_frag_shaders:
-    # desc: Compile vertex shaders
-    sources: ['assets/shaders/source/*.frag.hlsl']
-    generates: ['assets/shaders/compiled/*.spv']
+  asset_frag_shader:
+    sources: ['asset/shaders/source/*.frag.hlsl']
+    generates: ['dist/asset/shader/*.frag.spv']
     cmds:
       - for: sources
-        cmd: "{{.VULKAN_SDK}}/bin/glslc -fshader-stage=fragment -o assets/shaders/compiled/{{trimSuffix \".hlsl\" (base .ITEM)}}.spv {{.ITEM}}"
+        cmd: "{{.VULKAN_SDK}}/bin/glslc -fshader-stage=fragment -o dist/asset/shader/{{trimSuffix \".hlsl\" (base .ITEM)}}.spv {{.ITEM}}"
+
+  asset_mesh:
+    sources: ['asset/mesh/*.json']
+    generates: ['dist/asset/mesh/*.json']
+    cmds:
+      - for: sources
+        cmd: 'cp {{.ITEM}} dist/asset/mesh'
+
+  asset_entity:
+    sources: ['asset/entity/*.json']
+    generates: ['dist/asset/entity/*.json']
+    cmds:
+      - for: sources
+        cmd: 'cp {{.ITEM}} dist/asset/entity'
+
+  asset_aseprite:
+    sources:
+      - 'asset/aseprite/*.aseprite'
+    generates:
+      - 'tmp/sprite/*.png'
+      - 'dist/asset/sprite/*.json'
+    cmds:
+      - for: sources
+        cmd: 'aseprite -b {{.ITEM}} --sheet tmp/sprite/{{trimSuffix ".aseprite" (base .ITEM)}}.png --data dist/asset/sprite/{{trimSuffix ".aseprite" (base .ITEM)}}.json --format json-array --trim'
+
+  asset_crunch:
+    deps: [asset_aseprite] # crunch needs aseprite's tmp/sprite/*.png first
+    sources: ['tmp/sprite/*']
+    generates: ['dist/asset/sprite/atlas.png']
+    cmd: crunch dist/asset/sprite/atlas tmp/sprite -v -j
+
+  dist:
+    cmd: mkdir -p dist dist/asset/shader dist/asset/mesh dist/asset/entity dist/asset/sprite
+
+  assets:
+    deps: [dist]
+    cmds:
+      - task: asset_vert_shader
+      - task: asset_frag_shader
+      - task: asset_aseprite
+      - task: asset_mesh
+      - task: asset_entity
+      - task: asset_crunch

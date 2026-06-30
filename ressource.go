@@ -47,34 +47,44 @@ type rawComponentEntry struct {
 	Value json.RawMessage `json:"value"`
 }
 
-type RessourceEntity struct {
+type ressourceEntity struct {
 	Components []rawComponentEntry `json:"components"`
 }
 
 type RessourceManager struct {
-	meshRessources map[string]RessourceMesh
+	meshRessources   map[string]*RessourceMesh
+	entityRessources map[string]*ressourceEntity
 }
 
 func NewRessourceManager() *RessourceManager {
-	return &RessourceManager{meshRessources: make(map[string]RessourceMesh)}
+	return &RessourceManager{
+		meshRessources:   make(map[string]*RessourceMesh),
+		entityRessources: make(map[string]*ressourceEntity),
+	}
 }
 
-func (rm *RessourceManager) LoadMesh(dat []byte) {
+func (rm *RessourceManager) LoadMesh(dat []byte) error {
 	var mesh RessourceMesh
 	if err := json.Unmarshal(dat, &mesh); err != nil {
-		panic(err)
+		return fmt.Errorf("Cannot deserialize mesh", err)
 	}
 	_, exists := rm.meshRessources[mesh.Id]
 	if exists {
-		panic(fmt.Errorf("Mesh Id %s already exists", mesh.Id))
+		return fmt.Errorf("mesh Id %s already exists", mesh.Id)
 	}
-	rm.meshRessources[mesh.Id] = mesh
+	rm.meshRessources[mesh.Id] = &mesh
+	return nil
 }
 
-func (rm *RessourceManager) LoadEntity(dat []byte) *RessourceEntity {
-	var ent RessourceEntity
+func (rm *RessourceManager) LoadEntity(id string, dat []byte) error {
+	_, exists := rm.entityRessources[id]
+	if exists {
+		return fmt.Errorf("cannot load entity : id %s already exists", id)
+	}
+
+	var ent ressourceEntity
 	if err := json.Unmarshal(dat, &ent); err != nil {
-		panic(err)
+		return fmt.Errorf("cannot deserialize entity : %w", err)
 	}
 
 	for _, c := range ent.Components {
@@ -83,28 +93,35 @@ func (rm *RessourceManager) LoadEntity(dat []byte) *RessourceEntity {
 		case "mesh":
 			var rsMesh RessourceMeshId
 			if err := json.Unmarshal(c.Value, &rsMesh); err != nil {
-				panic(err)
+				return fmt.Errorf("cannot deserialize entity's mesh component : %w", err)
 			}
 			fmt.Println(rsMesh.Id)
 		case "name":
 			var rsName RessourceName
 			if err := json.Unmarshal(c.Value, &rsName); err != nil {
-				panic(err)
+				return fmt.Errorf("cannot deserialize entity's name component : %w", err)
 			}
 			fmt.Println(rsName.Name)
 		case "transform":
 			var rsTransform RessourceTransform
 			if err := json.Unmarshal(c.Value, &rsTransform); err != nil {
-				panic(err)
+				return fmt.Errorf("cannot deserialize entity's transform component : %w", err)
 			}
 			fmt.Println(rsTransform)
 		}
 	}
 
-	return &ent
+	rm.entityRessources[id] = &ent
+
+	return nil
 }
 
-func (rm *RessourceManager) Spawn(ctx *Context, ent *RessourceEntity) EntityID {
+func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
+	ent, exists := rm.entityRessources[id]
+	if !exists {
+		return 0, fmt.Errorf("cannot spawn entity : id %s not found", id)
+	}
+
 	e := ctx.W.NewEntity()
 	for _, c := range ent.Components {
 		switch c.Type {
@@ -135,5 +152,5 @@ func (rm *RessourceManager) Spawn(ctx *Context, ent *RessourceEntity) EntityID {
 			ctx.W.MeshStore.Upsert(e, NewMeshComponent(ctx, verts))
 		}
 	}
-	return e
+	return e, nil
 }
