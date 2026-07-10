@@ -60,3 +60,19 @@ tasks:
       - task: asset_mesh
       - task: asset_entity
       - task: asset_crunch
+
+  build:
+    desc: Build engine and game
+    deps: [assets]
+    cmds:
+      - go build -o {{.EXECUTABLE_NAME}} ./game/game.go
+
+  clean:
+    desc: Clean built binary
+    cmds:
+      - go clean
+      - rm -rf dist tmp
+
+  run:
+    deps: [assets]
+    cmd: cd dist && go run ../game/game.go
