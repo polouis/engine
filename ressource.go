@@ -88,26 +88,22 @@ func (rm *RessourceManager) LoadEntity(id string, dat []byte) error {
 	}
 
 	for _, c := range ent.Components {
-		fmt.Println(c.Type)
 		switch c.Type {
 		case "mesh":
 			var rsMesh RessourceMeshId
 			if err := json.Unmarshal(c.Value, &rsMesh); err != nil {
 				return fmt.Errorf("cannot deserialize entity's mesh component : %w", err)
 			}
-			fmt.Println(rsMesh.Id)
 		case "name":
 			var rsName RessourceName
 			if err := json.Unmarshal(c.Value, &rsName); err != nil {
 				return fmt.Errorf("cannot deserialize entity's name component : %w", err)
 			}
-			fmt.Println(rsName.Name)
 		case "transform":
 			var rsTransform RessourceTransform
 			if err := json.Unmarshal(c.Value, &rsTransform); err != nil {
 				return fmt.Errorf("cannot deserialize entity's transform component : %w", err)
 			}
-			fmt.Println(rsTransform)
 		}
 	}
 
