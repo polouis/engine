@@ -23,6 +23,10 @@ type BackendSDL struct {
 	rp *sdl.GPURenderPass
 }
 
+var _ backend.Platform = (*BackendSDL)(nil)
+var _ backend.Input = (*BackendSDL)(nil)
+var _ backend.GPU = (*BackendSDL)(nil)
+
 type drawable interface {
 	draw(rp *sdl.GPURenderPass) error
 }

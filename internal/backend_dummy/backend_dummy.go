@@ -9,6 +9,10 @@ import (
 
 type BackendDummy struct{}
 
+var _ backend.Platform = (*BackendDummy)(nil)
+var _ backend.Input = (*BackendDummy)(nil)
+var _ backend.GPU = (*BackendDummy)(nil)
+
 type DummyVertexBuffer struct{}
 
 func (b *BackendDummy) Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error {

@@ -14,7 +14,7 @@ type MeshComponent struct {
 
 func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex) MeshComponent {
 	return MeshComponent{
-		VB:     ctx.b.NewVertexBuffer(vertices),
+		VB:     ctx.gpu.NewVertexBuffer(vertices),
 		Len:    uint32(len(vertices)),
 		Offset: 0,
 	}
@@ -35,14 +35,14 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 		} else {
 			u = backend.Mesh2dUniform{X: 0, Y: 0}
 		}
-		ctx.b.PushVertexUniformData(u)
+		ctx.gpu.PushVertexUniformData(u)
 
-		ctx.b.Draw(mesh2dCpnt.VB)
+		ctx.gpu.Draw(mesh2dCpnt.VB)
 	}
 }
 
 func ReleaseRenderSystem(ctx *Context) {
 	for _, mesh2dCpnt := range ctx.W.MeshStore.All() {
-		ctx.b.Release(mesh2dCpnt.VB)
+		ctx.gpu.Release(mesh2dCpnt.VB)
 	}
 }

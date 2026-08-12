@@ -10,17 +10,21 @@ import (
 )
 
 type Context struct {
-	W  *World
-	RM *RessourceManager
-	b  backend.Backend
+	W   *World
+	RM  *RessourceManager
+	p   backend.Platform
+	gpu backend.GPU
+	i   backend.Input
 }
 
 func New(bt types.BackendType) *Context {
 	switch bt {
 	case types.SDL:
-		return &Context{W: NewWorld(), RM: NewRessourceManager(), b: &backendsdl.BackendSDL{}}
+		bSDL := &backendsdl.BackendSDL{}
+		return &Context{W: NewWorld(), RM: NewRessourceManager(), p: bSDL, gpu: bSDL, i: bSDL}
 	case types.Dummy:
-		return &Context{W: NewWorld(), RM: NewRessourceManager(), b: &backenddummy.BackendDummy{}}
+		bDummy := &backenddummy.BackendDummy{}
+		return &Context{W: NewWorld(), RM: NewRessourceManager(), p: bDummy, gpu: bDummy, i: bDummy}
 	default:
 		panic(fmt.Sprintf("Cannot instanciate unknown backend '%v'", bt))
 	}
@@ -45,7 +49,7 @@ func releaseCtxBindingCallback(ctx *Context, releaseCallback func(*Context)) fun
 }
 
 func Run(ctx *Context, initCallback func(*Context), updateCallback func(*Context, uint64), releaseCallback func(*Context)) error {
-	return ctx.b.Run(
+	return ctx.p.Run(
 		initCtxBindingCallback(ctx, initCallback),
 		updateCtxBindingCallback(ctx, updateCallback),
 		releaseCtxBindingCallback(ctx, releaseCallback),
@@ -53,9 +57,9 @@ func Run(ctx *Context, initCallback func(*Context), updateCallback func(*Context
 }
 
 func GetKeyState(ctx *Context, k types.KeyType) bool {
-	return ctx.b.GetKeyState(k)
+	return ctx.i.GetKeyState(k)
 }
 
 func GetButtonState(ctx *Context, b types.ButtonType) bool {
-	return ctx.b.GetButtonState(b)
+	return ctx.i.GetButtonState(b)
 }
