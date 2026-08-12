@@ -39,8 +39,6 @@ func loadShader(
 	format := sdl.GPU_SHADERFORMAT_INVALID
 	entrypoint := ""
 
-	// fmt.Printf("BACKEND FORMATS: %08b\n", backendFormats)
-
 	if backendFormats&sdl.GPU_SHADERFORMAT_SPIRV == sdl.GPU_SHADERFORMAT_SPIRV {
 		path = fmt.Sprintf("asset/shader/%s.spv", shaderFilename)
 		format = sdl.GPU_SHADERFORMAT_SPIRV
