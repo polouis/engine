@@ -28,7 +28,7 @@ type drawable interface {
 }
 
 type releasable interface {
-	release(window *sdl.Window, device *sdl.GPUDevice)
+	release(device *sdl.GPUDevice)
 }
 
 func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error {
@@ -187,7 +187,7 @@ func (b *BackendSDL) Draw(vb backend.VertexBuffer) {
 
 func (b *BackendSDL) Release(vb backend.VertexBuffer) {
 	if d, ok := vb.(releasable); ok {
-		d.release(b.window, b.device)
+		d.release(b.device)
 	}
 }
 

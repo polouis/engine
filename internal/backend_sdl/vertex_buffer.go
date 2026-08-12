@@ -227,7 +227,7 @@ func (vb *BasicVertexBuffer) draw(renderPass *sdl.GPURenderPass) error {
 	return nil
 }
 
-func (vb *BasicVertexBuffer) release(window *sdl.Window, device *sdl.GPUDevice) {
+func (vb *BasicVertexBuffer) release(device *sdl.GPUDevice) {
 	device.ReleaseGraphicsPipeline(vb.pipeline)
 	device.ReleaseBuffer(vb.vertexBuffer)
 }
