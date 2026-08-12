@@ -29,7 +29,7 @@ func AtlasLoadCrunch(dat []byte) []AtlasEntry {
 	}
 
 	if len(aDat.Textures) != 1 {
-		panic(fmt.Errorf("Atas contains :d textures, should be one exactly", len(aDat.Textures)))
+		panic(fmt.Errorf("Atas contains %d textures, should be one exactly", len(aDat.Textures)))
 	}
 
 	aes := make([]AtlasEntry, len(aDat.Textures[0].Images))

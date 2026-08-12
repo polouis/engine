@@ -66,7 +66,7 @@ func NewRessourceManager() *RessourceManager {
 func (rm *RessourceManager) LoadMesh(dat []byte) error {
 	var mesh RessourceMesh
 	if err := json.Unmarshal(dat, &mesh); err != nil {
-		return fmt.Errorf("Cannot deserialize mesh", err)
+		return fmt.Errorf("Cannot deserialize mesh, got error %w", err)
 	}
 	_, exists := rm.meshRessources[mesh.Id]
 	if exists {
