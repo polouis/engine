@@ -21,19 +21,13 @@ type BackendSDL struct {
 	// Move this in a render context
 	cb *sdl.GPUCommandBuffer
 	rp *sdl.GPURenderPass
+
+	buffers []*BasicVertexBuffer // index = ID - 1
 }
 
 var _ backend.Platform = (*BackendSDL)(nil)
 var _ backend.Input = (*BackendSDL)(nil)
 var _ backend.GPU = (*BackendSDL)(nil)
-
-type drawable interface {
-	draw(rp *sdl.GPURenderPass) error
-}
-
-type releasable interface {
-	release(device *sdl.GPUDevice)
-}
 
 func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error {
 	defer binsdl.Load().Unload() // sdl.LoadLibrary(sdl.Path())
@@ -175,24 +169,38 @@ func (b *BackendSDL) update(getDeltaTime func(uint64) uint64, updateCallback fun
 	return nil
 }
 
-func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBuffer {
+func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
 	var vb BasicVertexBuffer
 	if err := vb.Init(b.window, b.device, vbData); err != nil {
 		panic("NewVertexBuffer: " + err.Error())
 	}
-	return &vb
+	b.buffers = append(b.buffers, &vb)
+	return backend.VertexBufferID(len(b.buffers)) // 1-based
 }
 
-func (b *BackendSDL) Draw(vb backend.VertexBuffer) {
-	if vbSdl, ok := vb.(drawable); ok {
-		vbSdl.draw(b.rp)
+func (b *BackendSDL) lookup(id backend.VertexBufferID) *BasicVertexBuffer {
+	if id == backend.InvalidBuffer || int(id) > len(b.buffers) {
+		return nil
 	}
+	return b.buffers[id-1]
 }
 
-func (b *BackendSDL) Release(vb backend.VertexBuffer) {
-	if d, ok := vb.(releasable); ok {
-		d.release(b.device)
+func (b *BackendSDL) Draw(vb backend.VertexBufferID) error {
+	vbSdl := b.lookup(vb)
+	if vbSdl == nil {
+		return fmt.Errorf("Vertex buffer not found %v", vb)
 	}
+	vbSdl.draw(b.rp)
+	return nil
+}
+
+func (b *BackendSDL) Release(vb backend.VertexBufferID) error {
+	vbSdl := b.lookup(vb)
+	if vbSdl == nil {
+		return fmt.Errorf("Vertex buffer not found %v", vb)
+	}
+	vbSdl.release(b.device)
+	return nil
 }
 
 func (b *BackendSDL) GetKeyState(k types.KeyType) bool {

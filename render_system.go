@@ -6,7 +6,7 @@ import (
 )
 
 type MeshComponent struct {
-	VB backend.VertexBuffer
+	VB backend.VertexBufferID
 	// TODO use it when implementing shared buffer between multiple entities
 	Len    uint32
 	Offset uint32
