@@ -12,6 +12,24 @@ import (
 	"github.com/polouis/engine/types"
 )
 
+const (
+	idxBits = 20
+	idxMask = (1 << idxBits) - 1
+)
+
+type bufferSlot struct {
+	vb  *BasicVertexBuffer
+	gen uint32
+}
+
+func makeID(idx, gen uint32) backend.VertexBufferID {
+	return backend.VertexBufferID(gen<<idxBits | idx)
+}
+
+func splitID(id backend.VertexBufferID) (idx, gen uint32) {
+	return uint32(id) & idxMask, uint32(id) >> idxBits
+}
+
 type BackendSDL struct {
 	window       *sdl.Window
 	device       *sdl.GPUDevice
@@ -22,7 +40,8 @@ type BackendSDL struct {
 	cb *sdl.GPUCommandBuffer
 	rp *sdl.GPURenderPass
 
-	buffers []*BasicVertexBuffer // index = ID - 1
+	vbs      []bufferSlot
+	freeList []uint32
 }
 
 var _ backend.Platform = (*BackendSDL)(nil)
@@ -174,15 +193,32 @@ func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend
 	if err := vb.Init(b.window, b.device, vbData); err != nil {
 		panic("NewVertexBuffer: " + err.Error())
 	}
-	b.buffers = append(b.buffers, &vb)
-	return backend.VertexBufferID(len(b.buffers)) // 1-based
+	return b.alloc(&vb)
+}
+
+func (b *BackendSDL) alloc(vb *BasicVertexBuffer) backend.VertexBufferID {
+	var idx uint32
+	if n := len(b.freeList); n > 0 {
+		idx = b.freeList[n-1]
+		b.freeList = b.freeList[:n-1]
+		b.vbs[idx].vb = vb // gen was already bumped by Release
+	} else {
+		idx = uint32(len(b.vbs))
+		b.vbs = append(b.vbs, bufferSlot{vb: vb, gen: 1})
+	}
+	return makeID(idx, b.vbs[idx].gen)
 }
 
 func (b *BackendSDL) lookup(id backend.VertexBufferID) *BasicVertexBuffer {
-	if id == backend.InvalidBuffer || int(id) > len(b.buffers) {
+	idx, gen := splitID(id)
+	if int(idx) >= len(b.vbs) {
 		return nil
 	}
-	return b.buffers[id-1]
+	s := &b.vbs[idx]
+	if s.gen != gen {
+		return nil
+	}
+	return s.vb
 }
 
 func (b *BackendSDL) Draw(vb backend.VertexBufferID) error {
@@ -194,12 +230,19 @@ func (b *BackendSDL) Draw(vb backend.VertexBufferID) error {
 	return nil
 }
 
-func (b *BackendSDL) Release(vb backend.VertexBufferID) error {
-	vbSdl := b.lookup(vb)
-	if vbSdl == nil {
-		return fmt.Errorf("Vertex buffer not found %v", vb)
+func (b *BackendSDL) Release(id backend.VertexBufferID) error {
+	idx, gen := splitID(id)
+	if int(idx) >= len(b.vbs) {
+		return fmt.Errorf("VB index %d out of bound (len=%d)", idx, len(b.vbs))
 	}
-	vbSdl.release(b.device)
+	s := &b.vbs[idx]
+	if s.vb == nil || s.gen != gen {
+		return fmt.Errorf("Double release, or a stale handle (index=%d)", idx)
+	}
+	s.vb.release(b.device)
+	s.vb = nil
+	s.gen++
+	b.freeList = append(b.freeList, idx)
 	return nil
 }
 
