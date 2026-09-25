@@ -7,23 +7,30 @@ import (
 	"github.com/polouis/engine/types"
 )
 
-type BackendDummy struct{}
+type BackendDummy struct {
+	nextVB backend.VertexBufferID
+}
 
-type DummyVertexBuffer struct{}
+var _ backend.Platform = (*BackendDummy)(nil)
+var _ backend.Input = (*BackendDummy)(nil)
+var _ backend.GPU = (*BackendDummy)(nil)
 
 func (b *BackendDummy) Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error {
 	fmt.Println("I'm a dummy backend")
 	return nil
 }
 
-func (b *BackendDummy) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBuffer {
-	return &DummyVertexBuffer{}
+func (b *BackendDummy) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
+	b.nextVB++
+	return b.nextVB
 }
 
-func (b *BackendDummy) Draw(vb backend.VertexBuffer) {
+func (b *BackendDummy) Draw(vb backend.VertexBufferID) error {
+	return nil
 }
 
-func (b *BackendDummy) Release(vb backend.VertexBuffer) {
+func (b *BackendDummy) Release(vb backend.VertexBufferID) error {
+	return nil
 }
 
 func (b *BackendDummy) GetKeyState(k types.KeyType) bool {

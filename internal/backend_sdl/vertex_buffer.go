@@ -39,8 +39,6 @@ func loadShader(
 	format := sdl.GPU_SHADERFORMAT_INVALID
 	entrypoint := ""
 
-	// fmt.Printf("BACKEND FORMATS: %08b\n", backendFormats)
-
 	if backendFormats&sdl.GPU_SHADERFORMAT_SPIRV == sdl.GPU_SHADERFORMAT_SPIRV {
 		path = fmt.Sprintf("asset/shader/%s.spv", shaderFilename)
 		format = sdl.GPU_SHADERFORMAT_SPIRV
@@ -229,7 +227,7 @@ func (vb *BasicVertexBuffer) draw(renderPass *sdl.GPURenderPass) error {
 	return nil
 }
 
-func (vb *BasicVertexBuffer) release(window *sdl.Window, device *sdl.GPUDevice) {
+func (vb *BasicVertexBuffer) release(device *sdl.GPUDevice) {
 	device.ReleaseGraphicsPipeline(vb.pipeline)
 	device.ReleaseBuffer(vb.vertexBuffer)
 }

@@ -12,6 +12,24 @@ import (
 	"github.com/polouis/engine/types"
 )
 
+const (
+	idxBits = 20
+	idxMask = (1 << idxBits) - 1
+)
+
+type bufferSlot struct {
+	vb  *BasicVertexBuffer
+	gen uint32
+}
+
+func makeID(idx, gen uint32) backend.VertexBufferID {
+	return backend.VertexBufferID(gen<<idxBits | idx)
+}
+
+func splitID(id backend.VertexBufferID) (idx, gen uint32) {
+	return uint32(id) & idxMask, uint32(id) >> idxBits
+}
+
 type BackendSDL struct {
 	window       *sdl.Window
 	device       *sdl.GPUDevice
@@ -21,15 +39,14 @@ type BackendSDL struct {
 	// Move this in a render context
 	cb *sdl.GPUCommandBuffer
 	rp *sdl.GPURenderPass
+
+	vbs      []bufferSlot
+	freeList []uint32
 }
 
-type drawable interface {
-	draw(rp *sdl.GPURenderPass) error
-}
-
-type releasable interface {
-	release(window *sdl.Window, device *sdl.GPUDevice)
-}
+var _ backend.Platform = (*BackendSDL)(nil)
+var _ backend.Input = (*BackendSDL)(nil)
+var _ backend.GPU = (*BackendSDL)(nil)
 
 func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error {
 	defer binsdl.Load().Unload() // sdl.LoadLibrary(sdl.Path())
@@ -171,24 +188,62 @@ func (b *BackendSDL) update(getDeltaTime func(uint64) uint64, updateCallback fun
 	return nil
 }
 
-func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBuffer {
+func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
 	var vb BasicVertexBuffer
 	if err := vb.Init(b.window, b.device, vbData); err != nil {
 		panic("NewVertexBuffer: " + err.Error())
 	}
-	return &vb
+	return b.alloc(&vb)
 }
 
-func (b *BackendSDL) Draw(vb backend.VertexBuffer) {
-	if vbSdl, ok := vb.(drawable); ok {
-		vbSdl.draw(b.rp)
+func (b *BackendSDL) alloc(vb *BasicVertexBuffer) backend.VertexBufferID {
+	var idx uint32
+	if n := len(b.freeList); n > 0 {
+		idx = b.freeList[n-1]
+		b.freeList = b.freeList[:n-1]
+		b.vbs[idx].vb = vb // gen was already bumped by Release
+	} else {
+		idx = uint32(len(b.vbs))
+		b.vbs = append(b.vbs, bufferSlot{vb: vb, gen: 1})
 	}
+	return makeID(idx, b.vbs[idx].gen)
 }
 
-func (b *BackendSDL) Release(vb backend.VertexBuffer) {
-	if d, ok := vb.(releasable); ok {
-		d.release(b.window, b.device)
+func (b *BackendSDL) lookup(id backend.VertexBufferID) *BasicVertexBuffer {
+	idx, gen := splitID(id)
+	if int(idx) >= len(b.vbs) {
+		return nil
 	}
+	s := &b.vbs[idx]
+	if s.gen != gen {
+		return nil
+	}
+	return s.vb
+}
+
+func (b *BackendSDL) Draw(vb backend.VertexBufferID) error {
+	vbSdl := b.lookup(vb)
+	if vbSdl == nil {
+		return fmt.Errorf("Vertex buffer not found %v", vb)
+	}
+	vbSdl.draw(b.rp)
+	return nil
+}
+
+func (b *BackendSDL) Release(id backend.VertexBufferID) error {
+	idx, gen := splitID(id)
+	if int(idx) >= len(b.vbs) {
+		return fmt.Errorf("VB index %d out of bound (len=%d)", idx, len(b.vbs))
+	}
+	s := &b.vbs[idx]
+	if s.vb == nil || s.gen != gen {
+		return fmt.Errorf("Double release, or a stale handle (index=%d)", idx)
+	}
+	s.vb.release(b.device)
+	s.vb = nil
+	s.gen++
+	b.freeList = append(b.freeList, idx)
+	return nil
 }
 
 func (b *BackendSDL) GetKeyState(k types.KeyType) bool {
