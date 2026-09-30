@@ -25,13 +25,9 @@ func (b *BackendDummy) NewVertexBuffer(vbData []types.PositionColorVertex) backe
 	return b.nextVB
 }
 
-func (b *BackendDummy) Draw(vb backend.VertexBufferID) error {
-	return nil
-}
+func (b *BackendDummy) Draw(vb backend.VertexBufferID) {}
 
-func (b *BackendDummy) Release(vb backend.VertexBufferID) error {
-	return nil
-}
+func (b *BackendDummy) Release(vb backend.VertexBufferID) {}
 
 func (b *BackendDummy) GetKeyState(k types.KeyType) bool {
 	return false
