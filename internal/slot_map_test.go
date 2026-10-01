@@ -100,7 +100,7 @@ func TestSlotMapOutOfBoundsHandlePanics(t *testing.T) {
 	assertPanicsWith(t, "Free past the end", "out of bounds", func() { m.Free(beyond) })
 }
 
-// The zero handle is reserved (InvalidHandle, re-exported as backend.InvalidBuffer).
+// The zero handle is reserved (InvalidHandle).
 // It must report that specific cause rather than being mistaken for an out-of-range
 // or stale handle, because the likeliest way to reach it is an uninitialised
 // component whose handle field is still the zero value.

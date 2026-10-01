@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"github.com/polouis/engine/internal"
 	"github.com/polouis/engine/types"
 )
 
@@ -15,14 +14,18 @@ type Platform interface {
 }
 
 type VertexBufferID uint32
+type PipelineID uint32
 
-const InvalidBuffer VertexBufferID = internal.InvalidHandle
+type PipelineDesc struct {
+}
 
 type GPU interface {
-	NewVertexBuffer([]types.PositionColorVertex) VertexBufferID
+	CreatePipeline(PipelineDesc) PipelineID
+	ReleasePipeline(p PipelineID)
+	CreateVertexBuffer([]types.PositionColorVertex) VertexBufferID
 	PushVertexUniformData(u Mesh2dUniform)
-	Draw(vb VertexBufferID)
-	Release(vb VertexBufferID)
+	DrawVertexBuffer(vb VertexBufferID)
+	ReleaseVertexBuffer(vb VertexBufferID)
 }
 
 type Input interface {
