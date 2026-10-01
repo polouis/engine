@@ -23,7 +23,8 @@ type BackendSDL struct {
 	cb *sdl.GPUCommandBuffer
 	rp *sdl.GPURenderPass
 
-	vbs internal.SlotMap[BasicVertexBuffer, backend.VertexBufferID]
+	vbs       internal.SlotMap[BasicVertexBuffer, backend.VertexBufferID]
+	pipelines internal.SlotMap[BasicPipeline, backend.PipelineID]
 }
 
 var _ backend.Platform = (*BackendSDL)(nil)
@@ -170,7 +171,11 @@ func (b *BackendSDL) update(getDeltaTime func(uint64) uint64, updateCallback fun
 	return nil
 }
 
-func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
+/**
+ * Vertex buffer code
+ */
+
+func (b *BackendSDL) CreateVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
 	var vb BasicVertexBuffer
 	if err := vb.Init(b.window, b.device, vbData); err != nil {
 		panic("NewVertexBuffer: " + err.Error())
@@ -178,12 +183,12 @@ func (b *BackendSDL) NewVertexBuffer(vbData []types.PositionColorVertex) backend
 	return b.vbs.Alloc(&vb)
 }
 
-func (b *BackendSDL) Draw(vb backend.VertexBufferID) {
+func (b *BackendSDL) DrawVertexBuffer(vb backend.VertexBufferID) {
 	vbSdl := b.vbs.Lookup(vb)
 	vbSdl.draw(b.rp)
 }
 
-func (b *BackendSDL) Release(id backend.VertexBufferID) {
+func (b *BackendSDL) ReleaseVertexBuffer(id backend.VertexBufferID) {
 	vbSdl := b.vbs.Free(id)
 	vbSdl.release(b.device)
 }
@@ -201,4 +206,20 @@ func (b *BackendSDL) PushVertexUniformData(u backend.Mesh2dUniform) {
 		(*byte)(unsafe.Pointer(&u)),
 		unsafe.Sizeof(u),
 	))
+}
+
+/**
+ * Pipiline code
+ */
+
+func (b *BackendSDL) CreatePipeline(desc backend.PipelineDesc) backend.PipelineID {
+	var p BasicPipeline
+	if err := p.Init(b.window, b.device); err != nil {
+		panic("NewVertexBuffer: " + err.Error())
+	}
+	return b.pipelines.Alloc(&p)
+}
+
+func (b *BackendSDL) ReleasePipeline(p backend.PipelineID) {
+
 }

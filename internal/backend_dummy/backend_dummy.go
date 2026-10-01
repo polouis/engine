@@ -8,7 +8,8 @@ import (
 )
 
 type BackendDummy struct {
-	nextVB backend.VertexBufferID
+	nextVB       backend.VertexBufferID
+	nextPipeline backend.PipelineID
 }
 
 var _ backend.Platform = (*BackendDummy)(nil)
@@ -20,14 +21,14 @@ func (b *BackendDummy) Run(initCallback func(), updateCallback func(uint64), rel
 	return nil
 }
 
-func (b *BackendDummy) NewVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
+func (b *BackendDummy) CreateVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
 	b.nextVB++
 	return b.nextVB
 }
 
-func (b *BackendDummy) Draw(vb backend.VertexBufferID) {}
+func (b *BackendDummy) DrawVertexBuffer(vb backend.VertexBufferID) {}
 
-func (b *BackendDummy) Release(vb backend.VertexBufferID) {}
+func (b *BackendDummy) ReleaseVertexBuffer(vb backend.VertexBufferID) {}
 
 func (b *BackendDummy) GetKeyState(k types.KeyType) bool {
 	return false
@@ -39,4 +40,12 @@ func (b *BackendDummy) GetButtonState(btn types.ButtonType) bool {
 
 func (b *BackendDummy) PushVertexUniformData(u backend.Mesh2dUniform) {
 
+}
+
+func (b *BackendDummy) CreatePipeline(desc backend.PipelineDesc) backend.PipelineID {
+	b.nextPipeline++
+	return b.nextPipeline
+}
+
+func (b *BackendDummy) ReleasePipeline(p backend.PipelineID) {
 }
