@@ -6,7 +6,8 @@ import (
 )
 
 type MeshComponent struct {
-	VB backend.VertexBufferID
+	VB       backend.VertexBufferID
+	pipeline backend.PipelineID
 	// TODO use it when implementing shared buffer between multiple entities
 	Len    uint32
 	Offset uint32
@@ -14,9 +15,10 @@ type MeshComponent struct {
 
 func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex) MeshComponent {
 	return MeshComponent{
-		VB:     ctx.gpu.CreateVertexBuffer(vertices),
-		Len:    uint32(len(vertices)),
-		Offset: 0,
+		VB:       ctx.gpu.CreateVertexBuffer(vertices),
+		pipeline: ctx.gpu.CreatePipeline(backend.PipelineDesc{}),
+		Len:      uint32(len(vertices)),
+		Offset:   0,
 	}
 }
 
@@ -28,6 +30,8 @@ type SpriteComponent struct {
 
 func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 	for e, mesh2dCpnt := range ctx.W.MeshStore.All() {
+		ctx.gpu.BindPipeline(mesh2dCpnt.pipeline)
+
 		transform, err := ctx.W.TransformStore.Get(e)
 		var u backend.Mesh2dUniform
 		if err == nil {
@@ -44,5 +48,6 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 func ReleaseRenderSystem(ctx *Context) {
 	for _, mesh2dCpnt := range ctx.W.MeshStore.All() {
 		ctx.gpu.ReleaseVertexBuffer(mesh2dCpnt.VB)
+		ctx.gpu.ReleasePipeline(mesh2dCpnt.pipeline)
 	}
 }

@@ -49,3 +49,6 @@ func (b *BackendDummy) CreatePipeline(desc backend.PipelineDesc) backend.Pipelin
 
 func (b *BackendDummy) ReleasePipeline(p backend.PipelineID) {
 }
+
+func (b *BackendDummy) BindPipeline(p backend.PipelineID) {
+}

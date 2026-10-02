@@ -22,6 +22,8 @@ type PipelineDesc struct {
 type GPU interface {
 	CreatePipeline(PipelineDesc) PipelineID
 	ReleasePipeline(p PipelineID)
+	BindPipeline(p PipelineID)
+
 	CreateVertexBuffer([]types.PositionColorVertex) VertexBufferID
 	PushVertexUniformData(u Mesh2dUniform)
 	DrawVertexBuffer(vb VertexBufferID)

@@ -178,7 +178,7 @@ func (b *BackendSDL) update(getDeltaTime func(uint64) uint64, updateCallback fun
 func (b *BackendSDL) CreateVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
 	var vb BasicVertexBuffer
 	if err := vb.Init(b.window, b.device, vbData); err != nil {
-		panic("NewVertexBuffer: " + err.Error())
+		panic("CreateVertexBuffer: " + err.Error())
 	}
 	return b.vbs.Alloc(&vb)
 }
@@ -193,6 +193,32 @@ func (b *BackendSDL) ReleaseVertexBuffer(id backend.VertexBufferID) {
 	vbSdl.release(b.device)
 }
 
+/**
+ * Pipeline code
+ */
+
+func (b *BackendSDL) CreatePipeline(desc backend.PipelineDesc) backend.PipelineID {
+	var p BasicPipeline
+	if err := p.Init(b.window, b.device); err != nil {
+		panic("CreatePipeline: " + err.Error())
+	}
+	return b.pipelines.Alloc(&p)
+}
+
+func (b *BackendSDL) ReleasePipeline(id backend.PipelineID) {
+	pipelineSdl := b.pipelines.Free(id)
+	pipelineSdl.release(b.device)
+}
+
+func (b *BackendSDL) BindPipeline(id backend.PipelineID) {
+	pSdl := b.pipelines.Lookup(id)
+	pSdl.bind(b.rp)
+}
+
+/**
+ * Inputs
+ */
+
 func (b *BackendSDL) GetKeyState(k types.KeyType) bool {
 	return b.keyStates[k]
 }
@@ -206,20 +232,4 @@ func (b *BackendSDL) PushVertexUniformData(u backend.Mesh2dUniform) {
 		(*byte)(unsafe.Pointer(&u)),
 		unsafe.Sizeof(u),
 	))
-}
-
-/**
- * Pipiline code
- */
-
-func (b *BackendSDL) CreatePipeline(desc backend.PipelineDesc) backend.PipelineID {
-	var p BasicPipeline
-	if err := p.Init(b.window, b.device); err != nil {
-		panic("NewVertexBuffer: " + err.Error())
-	}
-	return b.pipelines.Alloc(&p)
-}
-
-func (b *BackendSDL) ReleasePipeline(p backend.PipelineID) {
-
 }
