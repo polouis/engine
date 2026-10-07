@@ -12,7 +12,7 @@ type BasicPipeline struct {
 	pipeline *sdl.GPUGraphicsPipeline
 }
 
-func (vb *BasicPipeline) Init(window *sdl.Window, device *sdl.GPUDevice) error {
+func (p *BasicPipeline) Init(window *sdl.Window, device *sdl.GPUDevice) error {
 	// create shaders
 
 	vertexShader, err := loadShader(
@@ -74,7 +74,7 @@ func (vb *BasicPipeline) Init(window *sdl.Window, device *sdl.GPUDevice) error {
 		FragmentShader: fragmentShader,
 	}
 
-	vb.pipeline, err = device.CreateGraphicsPipeline(&pipelineCreateInfo)
+	p.pipeline, err = device.CreateGraphicsPipeline(&pipelineCreateInfo)
 	if err != nil {
 		return errors.New("failed to create pipeline: " + err.Error())
 	}
