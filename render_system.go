@@ -6,20 +6,25 @@ import (
 )
 
 type MeshComponent struct {
-	VB       backend.VertexBufferID
+	vb       backend.VertexBufferID
 	pipeline backend.PipelineID
 	// TODO use it when implementing shared buffer between multiple entities
-	Len    uint32
-	Offset uint32
+	len    uint32
+	offset uint32
 }
 
 func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex) MeshComponent {
 	return MeshComponent{
-		VB:       ctx.gpu.CreateVertexBuffer(vertices),
+		vb:       ctx.gpu.CreateVertexBuffer(vertices),
 		pipeline: ctx.gpu.CreatePipeline(backend.PipelineDesc{}),
-		Len:      uint32(len(vertices)),
-		Offset:   0,
+		len:      uint32(len(vertices)),
+		offset:   0,
 	}
+}
+
+type mesh2dUniform struct {
+	X float32
+	Y float32
 }
 
 type SpriteComponent struct {
@@ -29,25 +34,32 @@ type SpriteComponent struct {
 }
 
 func UpdateRenderSystem(ctx *Context, deltatime uint64) {
+
 	for e, mesh2dCpnt := range ctx.W.MeshStore.All() {
-		ctx.gpu.BindPipeline(mesh2dCpnt.pipeline)
-
 		transform, err := ctx.W.TransformStore.Get(e)
-		var u backend.Mesh2dUniform
+		var u mesh2dUniform
 		if err == nil {
-			u = backend.Mesh2dUniform{X: transform.Position.X, Y: transform.Position.Y}
+			u = mesh2dUniform{X: transform.Position.X, Y: transform.Position.Y}
 		} else {
-			u = backend.Mesh2dUniform{X: 0, Y: 0}
+			u = mesh2dUniform{X: 0, Y: 0}
 		}
-		ctx.gpu.PushVertexUniformData(u)
+		areanaOff, arenaLen := pushUniform(&ctx.r, u)
 
-		ctx.gpu.DrawVertexBuffer(mesh2dCpnt.VB)
+		ctx.r.cmds = append(ctx.r.cmds, backend.DrawCmd{
+			Pipeline:     mesh2dCpnt.pipeline,
+			VertexBuffer: mesh2dCpnt.vb,
+			ArenaOffset:  areanaOff,
+			ArenaLen:     arenaLen,
+		})
 	}
+	ctx.gpu.Submit(ctx.r.cmds, ctx.r.arena)
+
+	ctx.r.Reset()
 }
 
 func ReleaseRenderSystem(ctx *Context) {
 	for _, mesh2dCpnt := range ctx.W.MeshStore.All() {
-		ctx.gpu.ReleaseVertexBuffer(mesh2dCpnt.VB)
+		ctx.gpu.ReleaseVertexBuffer(mesh2dCpnt.vb)
 		ctx.gpu.ReleasePipeline(mesh2dCpnt.pipeline)
 	}
 }

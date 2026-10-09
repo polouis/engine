@@ -1,13 +1,9 @@
 package backend
 
 import (
+	"github.com/polouis/engine/internal"
 	"github.com/polouis/engine/types"
 )
-
-type Mesh2dUniform struct {
-	X float32
-	Y float32
-}
 
 type Platform interface {
 	Run(initCallback func(), updateCallback func(uint64), releaseCallback func()) error
@@ -16,18 +12,31 @@ type Platform interface {
 type VertexBufferID uint32
 type PipelineID uint32
 
+const InvalidPipeline = internal.InvalidHandle
+
 type PipelineDesc struct {
+}
+
+type DrawCmd struct {
+	Pipeline     PipelineID
+	VertexBuffer VertexBufferID
+	ArenaOffset  uint32
+	ArenaLen     uint32
+	// TODO implement VB sharing
+	// VBIndex      uint32
+	// VBLen        uint32
+	// TODO implement render state sorting
+	// SortKey      uint64 // pass | pipeline | material | depth
 }
 
 type GPU interface {
 	CreatePipeline(PipelineDesc) PipelineID
-	ReleasePipeline(p PipelineID)
-	BindPipeline(p PipelineID)
+	ReleasePipeline(PipelineID)
 
 	CreateVertexBuffer([]types.PositionColorVertex) VertexBufferID
-	PushVertexUniformData(u Mesh2dUniform)
-	DrawVertexBuffer(vb VertexBufferID)
-	ReleaseVertexBuffer(vb VertexBufferID)
+	ReleaseVertexBuffer(VertexBufferID)
+
+	Submit(cmds []DrawCmd, frameArena []byte)
 }
 
 type Input interface {

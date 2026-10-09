@@ -26,29 +26,17 @@ func (b *BackendDummy) CreateVertexBuffer(vbData []types.PositionColorVertex) ba
 	return b.nextVB
 }
 
-func (b *BackendDummy) DrawVertexBuffer(vb backend.VertexBufferID) {}
-
 func (b *BackendDummy) ReleaseVertexBuffer(vb backend.VertexBufferID) {}
 
-func (b *BackendDummy) GetKeyState(k types.KeyType) bool {
-	return false
-}
+func (b *BackendDummy) GetKeyState(k types.KeyType) bool { return false }
 
-func (b *BackendDummy) GetButtonState(btn types.ButtonType) bool {
-	return false
-}
-
-func (b *BackendDummy) PushVertexUniformData(u backend.Mesh2dUniform) {
-
-}
+func (b *BackendDummy) GetButtonState(btn types.ButtonType) bool { return false }
 
 func (b *BackendDummy) CreatePipeline(desc backend.PipelineDesc) backend.PipelineID {
 	b.nextPipeline++
 	return b.nextPipeline
 }
 
-func (b *BackendDummy) ReleasePipeline(p backend.PipelineID) {
-}
+func (b *BackendDummy) ReleasePipeline(p backend.PipelineID) {}
 
-func (b *BackendDummy) BindPipeline(p backend.PipelineID) {
-}
+func (b *BackendDummy) Submit(cmds []backend.DrawCmd, frameArena []byte) {}
