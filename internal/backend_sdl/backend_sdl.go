@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"unsafe"
 
 	"github.com/Zyko0/go-sdl3/bin/binsdl"
 	"github.com/Zyko0/go-sdl3/sdl"
@@ -25,6 +24,10 @@ type BackendSDL struct {
 
 	vbs       internal.SlotMap[BasicVertexBuffer, backend.VertexBufferID]
 	pipelines internal.SlotMap[BasicPipeline, backend.PipelineID]
+
+	drawCommands []backend.DrawCmd
+
+	currentPipeline backend.PipelineID
 }
 
 var _ backend.Platform = (*BackendSDL)(nil)
@@ -183,11 +186,6 @@ func (b *BackendSDL) CreateVertexBuffer(vbData []types.PositionColorVertex) back
 	return b.vbs.Alloc(&vb)
 }
 
-func (b *BackendSDL) DrawVertexBuffer(vb backend.VertexBufferID) {
-	vbSdl := b.vbs.Lookup(vb)
-	vbSdl.draw(b.rp)
-}
-
 func (b *BackendSDL) ReleaseVertexBuffer(id backend.VertexBufferID) {
 	vbSdl := b.vbs.Free(id)
 	vbSdl.release(b.device)
@@ -210,7 +208,7 @@ func (b *BackendSDL) ReleasePipeline(id backend.PipelineID) {
 	pipelineSdl.release(b.device)
 }
 
-func (b *BackendSDL) BindPipeline(id backend.PipelineID) {
+func (b *BackendSDL) bindPipeline(id backend.PipelineID) {
 	pSdl := b.pipelines.Lookup(id)
 	pSdl.bind(b.rp)
 }
@@ -227,9 +225,19 @@ func (b *BackendSDL) GetButtonState(btn types.ButtonType) bool {
 	return b.buttonStates[btn]
 }
 
-func (b *BackendSDL) PushVertexUniformData(u backend.Mesh2dUniform) {
-	b.cb.PushVertexUniformData(0, unsafe.Slice(
-		(*byte)(unsafe.Pointer(&u)),
-		unsafe.Sizeof(u),
-	))
+func (b *BackendSDL) Submit(cmds []backend.DrawCmd, frameArena []byte) {
+	for i := range cmds {
+		drawCmd := cmds[i]
+		if drawCmd.Pipeline != b.currentPipeline {
+			b.bindPipeline(drawCmd.Pipeline)
+			b.currentPipeline = drawCmd.Pipeline
+		}
+
+		u := frameArena[drawCmd.ArenaOffset : drawCmd.ArenaOffset+drawCmd.ArenaLen]
+		b.cb.PushVertexUniformData(0, u)
+
+		// TODO change this to share VB and pass index and len
+		vbSdl := b.vbs.Lookup(drawCmd.VertexBuffer)
+		vbSdl.draw(b.rp)
+	}
 }
