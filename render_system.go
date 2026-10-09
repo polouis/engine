@@ -13,10 +13,10 @@ type MeshComponent struct {
 	offset uint32
 }
 
-func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex) MeshComponent {
+func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex, pipeline backend.PipelineID) MeshComponent {
 	return MeshComponent{
 		vb:       ctx.gpu.CreateVertexBuffer(vertices),
-		pipeline: ctx.gpu.CreatePipeline(backend.PipelineDesc{}),
+		pipeline: pipeline,
 		len:      uint32(len(vertices)),
 		offset:   0,
 	}
@@ -60,6 +60,5 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 func ReleaseRenderSystem(ctx *Context) {
 	for _, mesh2dCpnt := range ctx.W.MeshStore.All() {
 		ctx.gpu.ReleaseVertexBuffer(mesh2dCpnt.vb)
-		ctx.gpu.ReleasePipeline(mesh2dCpnt.pipeline)
 	}
 }

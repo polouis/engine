@@ -4,14 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/polouis/engine/internal/backend"
 	"github.com/polouis/engine/types"
 )
-
-// /*
-//   - Need a table describing the VB when shared between multiple entities
-//   - - mesh id/name
-//   - -
-//  */
 
 type RessourceVertex struct {
 	X float32 `json:"x"`
@@ -54,12 +49,15 @@ type ressourceEntity struct {
 type RessourceManager struct {
 	meshRessources   map[string]*RessourceMesh
 	entityRessources map[string]*ressourceEntity
+	pipelines        map[string]backend.PipelineID
 }
 
 func NewRessourceManager() *RessourceManager {
+
 	return &RessourceManager{
 		meshRessources:   make(map[string]*RessourceMesh),
 		entityRessources: make(map[string]*ressourceEntity),
+		pipelines:        make(map[string]backend.PipelineID),
 	}
 }
 
@@ -112,10 +110,25 @@ func (rm *RessourceManager) LoadEntity(id string, dat []byte) error {
 	return nil
 }
 
+func (rm *RessourceManager) LoadPipeline(ctx *Context, dat []byte) error {
+
+	// TODO load pipelines configuration from file. Hard coded for now.
+	pipelineId := ctx.gpu.CreatePipeline(backend.PipelineDesc{})
+	rm.pipelines["the pipeline"] = pipelineId
+
+	return nil
+}
+
+func (rm *RessourceManager) ReleasePipelines(ctx *Context) {
+	for _, pipelineId := range rm.pipelines {
+		ctx.gpu.ReleasePipeline(pipelineId)
+	}
+}
+
 func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 	ent, exists := rm.entityRessources[id]
 	if !exists {
-		return 0, fmt.Errorf("cannot spawn entity : id %s not found", id)
+		return InvalidEntityID, fmt.Errorf("cannot spawn entity : id %s not found", id)
 	}
 
 	e := ctx.W.NewEntity()
@@ -134,7 +147,11 @@ func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 		case "mesh":
 			var r RessourceMeshId
 			json.Unmarshal(c.Value, &r)
+			// TODO, what if mesh is not found in cache ?
 			mesh := rm.meshRessources[r.Id] // resolve from cache
+			if mesh == nil {
+				return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown mesh id %s", id, mesh.Id)
+			}
 			var verts []types.PositionColorVertex = make([]types.PositionColorVertex, len(mesh.Vertices))
 			for i, v := range mesh.Vertices {
 				verts[i].X = v.X
@@ -145,7 +162,11 @@ func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 				verts[i].B = v.B
 				verts[i].A = v.A
 			}
-			ctx.W.MeshStore.Upsert(e, NewMeshComponent(ctx, verts))
+
+			pipelineName := "the pipeline"
+			pipelineId := rm.pipelines[pipelineName]
+
+			ctx.W.MeshStore.Upsert(e, NewMeshComponent(ctx, verts, pipelineId))
 		}
 	}
 	return e, nil

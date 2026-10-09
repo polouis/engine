@@ -226,6 +226,7 @@ func (b *BackendSDL) GetButtonState(btn types.ButtonType) bool {
 }
 
 func (b *BackendSDL) Submit(cmds []backend.DrawCmd, frameArena []byte) {
+	b.currentPipeline = backend.InvalidPipeline
 	for i := range cmds {
 		drawCmd := cmds[i]
 		if drawCmd.Pipeline != b.currentPipeline {
