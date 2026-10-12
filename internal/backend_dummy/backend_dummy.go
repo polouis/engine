@@ -2,14 +2,21 @@ package backenddummy
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/polouis/engine/internal/backend"
 	"github.com/polouis/engine/types"
 )
 
+type Submission struct {
+	Cmds  []backend.DrawCmd
+	Arena []byte
+}
+
 type BackendDummy struct {
 	nextVB       backend.VertexBufferID
 	nextPipeline backend.PipelineID
+	Submissions  []Submission
 }
 
 var _ backend.Platform = (*BackendDummy)(nil)
@@ -39,4 +46,10 @@ func (b *BackendDummy) CreatePipeline(desc backend.PipelineDesc) backend.Pipelin
 
 func (b *BackendDummy) ReleasePipeline(p backend.PipelineID) {}
 
-func (b *BackendDummy) Submit(cmds []backend.DrawCmd, frameArena []byte) {}
+func (b *BackendDummy) Submit(cmds []backend.DrawCmd, frameArena []byte) {
+
+	b.Submissions = append(b.Submissions, Submission{
+		Cmds:  slices.Clone(cmds),
+		Arena: slices.Clone(frameArena),
+	})
+}
