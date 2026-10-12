@@ -15,7 +15,7 @@ type Context struct {
 	p   backend.Platform
 	gpu backend.GPU
 	i   backend.Input
-	r   rendererData
+	r   renderData
 }
 
 func New(bt types.BackendType) *Context {

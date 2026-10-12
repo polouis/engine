@@ -52,6 +52,9 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 			ArenaLen:     arenaLen,
 		})
 	}
+
+	ctx.r.Sort()
+
 	ctx.gpu.Submit(ctx.r.cmds, ctx.r.arena)
 
 	ctx.r.Reset()
