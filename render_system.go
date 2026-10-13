@@ -35,6 +35,10 @@ type SpriteComponent struct {
 
 func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 
+	if ctx.gpu.BeginPass(backend.PassDesc{}) != nil {
+		return
+	}
+
 	for e, mesh2dCpnt := range ctx.W.MeshStore.All() {
 		transform, err := ctx.W.TransformStore.Get(e)
 		var u mesh2dUniform
@@ -54,9 +58,9 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 	}
 
 	ctx.r.Sort()
-
 	ctx.gpu.Submit(ctx.r.cmds, ctx.r.arena)
-
+	ctx.gpu.EndPass()
+	ctx.gpu.SubmitCommandBuffer()
 	ctx.r.Reset()
 }
 

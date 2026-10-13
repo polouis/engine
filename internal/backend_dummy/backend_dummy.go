@@ -46,10 +46,19 @@ func (b *BackendDummy) CreatePipeline(desc backend.PipelineDesc) backend.Pipelin
 
 func (b *BackendDummy) ReleasePipeline(p backend.PipelineID) {}
 
+func (b *BackendDummy) BeginPass(d backend.PassDesc) error {
+	return nil
+}
+
 func (b *BackendDummy) Submit(cmds []backend.DrawCmd, frameArena []byte) {
 
 	b.Submissions = append(b.Submissions, Submission{
 		Cmds:  slices.Clone(cmds),
 		Arena: slices.Clone(frameArena),
 	})
+}
+
+func (b *BackendDummy) EndPass() {}
+
+func (b *BackendDummy) SubmitCommandBuffer() {
 }
