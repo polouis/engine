@@ -23,6 +23,10 @@ func NewPosColorVert(x, y, z float32, r, g, b, a uint8) PositionColorVertex {
 	}
 }
 
+type Color struct {
+	R, G, B, A float32
+}
+
 /**
  * INPUT Keyboard
  */
