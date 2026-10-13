@@ -30,6 +30,7 @@ type DrawCmd struct {
 }
 
 type PassDesc struct {
+	ClearColor types.Color
 }
 
 type GPU interface {

@@ -35,7 +35,10 @@ type SpriteComponent struct {
 
 func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 
-	if ctx.gpu.BeginPass(backend.PassDesc{}) != nil {
+	passDesc := backend.PassDesc{
+		ClearColor: types.Color{R: 0.3, G: 0.03, B: 0.1, A: 1.0},
+	}
+	if ctx.gpu.BeginPass(passDesc) != nil {
 		return
 	}
 

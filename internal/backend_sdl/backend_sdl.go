@@ -230,7 +230,7 @@ func (b *BackendSDL) BeginPass(d backend.PassDesc) error {
 	if swapchainTexture != nil {
 		colorTargetInfo := sdl.GPUColorTargetInfo{
 			Texture:    swapchainTexture.Texture,
-			ClearColor: sdl.FColor{R: 0.3, G: 0.4, B: 0.5, A: 1.0},
+			ClearColor: sdl.FColor{R: d.ClearColor.R, G: d.ClearColor.G, B: d.ClearColor.B, A: d.ClearColor.A},
 			LoadOp:     sdl.GPU_LOADOP_CLEAR,
 			StoreOp:    sdl.GPU_STOREOP_STORE,
 		}
