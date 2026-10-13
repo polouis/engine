@@ -141,35 +141,7 @@ func (b *BackendSDL) Run(initCallback func(), updateCallback func(uint64), relea
 func (b *BackendSDL) update(getDeltaTime func(uint64) uint64, updateCallback func(uint64)) error {
 	deltaTime := getDeltaTime(sdl.TicksNS())
 
-	var err error
-	b.cb, err = b.device.AcquireCommandBuffer()
-	if err != nil {
-		return errors.New("failed to acquire command buffer: " + err.Error())
-	}
-
-	swapchainTexture, err := b.cb.WaitAndAcquireGPUSwapchainTexture(b.window)
-	if err != nil {
-		return errors.New("failed to acquire swapchain texture: " + err.Error())
-	}
-
-	if swapchainTexture != nil {
-		colorTargetInfo := sdl.GPUColorTargetInfo{
-			Texture:    swapchainTexture.Texture,
-			ClearColor: sdl.FColor{R: 0.3, G: 0.4, B: 0.5, A: 1.0},
-			LoadOp:     sdl.GPU_LOADOP_CLEAR,
-			StoreOp:    sdl.GPU_STOREOP_STORE,
-		}
-
-		b.rp = b.cb.BeginRenderPass(
-			[]sdl.GPUColorTargetInfo{colorTargetInfo}, nil,
-		)
-
-		updateCallback(deltaTime)
-
-		b.rp.End()
-	}
-
-	b.cb.Submit()
+	updateCallback(deltaTime)
 
 	return nil
 }
@@ -240,5 +212,43 @@ func (b *BackendSDL) Submit(cmds []backend.DrawCmd, frameArena []byte) {
 		// TODO change this to share VB and pass index and len
 		vbSdl := b.vbs.Lookup(drawCmd.VertexBuffer)
 		vbSdl.draw(b.rp)
+	}
+}
+
+func (b *BackendSDL) BeginPass(d backend.PassDesc) error {
+	var err error
+	b.cb, err = b.device.AcquireCommandBuffer()
+	if err != nil {
+		return errors.New("failed to acquire command buffer: " + err.Error())
+	}
+
+	swapchainTexture, err := b.cb.WaitAndAcquireGPUSwapchainTexture(b.window)
+	if err != nil {
+		return errors.New("failed to acquire swapchain texture: " + err.Error())
+	}
+
+	if swapchainTexture != nil {
+		colorTargetInfo := sdl.GPUColorTargetInfo{
+			Texture:    swapchainTexture.Texture,
+			ClearColor: sdl.FColor{R: 0.3, G: 0.4, B: 0.5, A: 1.0},
+			LoadOp:     sdl.GPU_LOADOP_CLEAR,
+			StoreOp:    sdl.GPU_STOREOP_STORE,
+		}
+
+		b.rp = b.cb.BeginRenderPass(
+			[]sdl.GPUColorTargetInfo{colorTargetInfo}, nil,
+		)
+	}
+
+	return nil
+}
+
+func (b *BackendSDL) EndPass() {
+	b.rp.End()
+}
+
+func (b *BackendSDL) SubmitCommandBuffer() {
+	if b.cb != nil {
+		b.cb.Submit()
 	}
 }

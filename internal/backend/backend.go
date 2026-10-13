@@ -29,6 +29,9 @@ type DrawCmd struct {
 	// SortKey      uint64 // pass | pipeline | material | depth
 }
 
+type PassDesc struct {
+}
+
 type GPU interface {
 	CreatePipeline(PipelineDesc) PipelineID
 	ReleasePipeline(PipelineID)
@@ -36,7 +39,10 @@ type GPU interface {
 	CreateVertexBuffer([]types.PositionColorVertex) VertexBufferID
 	ReleaseVertexBuffer(VertexBufferID)
 
+	BeginPass(PassDesc) error
 	Submit(cmds []DrawCmd, frameArena []byte)
+	EndPass()
+	SubmitCommandBuffer()
 }
 
 type Input interface {
