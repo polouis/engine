@@ -18,12 +18,12 @@ type RessourceVertex struct {
 	A uint8   `json:"a"`
 }
 
-type RessourceMesh struct {
+type ressourceMesh struct {
 	Id       string            `json:"id"`
 	Vertices []RessourceVertex `json:"vertices"`
 }
 
-type RessourceMaterial struct {
+type ressourceMaterial struct {
 	Id             string `json:"id"`
 	VertexShader   string `json:"vertex_shader"`
 	FragmentShader string `json:"fragment_shader"`
@@ -51,12 +51,15 @@ type rawComponentEntry struct {
 }
 
 type ressourceEntity struct {
+	name       *RessourceNameComponent
+	mesh       *RessourceMeshComponent
+	transform  *RessourceTransformComponent
 	Components []rawComponentEntry `json:"components"`
 }
 
 type RessourceManager struct {
-	meshRessources     map[string]*RessourceMesh
-	materialRessources map[string]*RessourceMaterial
+	meshRessources     map[string]*ressourceMesh
+	materialRessources map[string]*ressourceMaterial
 	entityRessources   map[string]*ressourceEntity
 	pipelines          map[string]backend.PipelineID
 	vertexBuffers      map[string]backend.VertexBufferID
@@ -64,8 +67,8 @@ type RessourceManager struct {
 
 func NewRessourceManager() *RessourceManager {
 	return &RessourceManager{
-		meshRessources:     make(map[string]*RessourceMesh),
-		materialRessources: make(map[string]*RessourceMaterial),
+		meshRessources:     make(map[string]*ressourceMesh),
+		materialRessources: make(map[string]*ressourceMaterial),
 		entityRessources:   make(map[string]*ressourceEntity),
 		pipelines:          make(map[string]backend.PipelineID),
 		vertexBuffers:      make(map[string]backend.VertexBufferID),
@@ -73,7 +76,7 @@ func NewRessourceManager() *RessourceManager {
 }
 
 func (rm *RessourceManager) LoadMesh(dat []byte) error {
-	var mesh RessourceMesh
+	var mesh ressourceMesh
 	if err := json.Unmarshal(dat, &mesh); err != nil {
 		return fmt.Errorf("Cannot deserialize mesh, got error %w", err)
 	}
@@ -86,7 +89,7 @@ func (rm *RessourceManager) LoadMesh(dat []byte) error {
 }
 
 func (rm *RessourceManager) LoadMaterial(dat []byte) error {
-	var material RessourceMaterial
+	var material ressourceMaterial
 	if err := json.Unmarshal(dat, &material); err != nil {
 		return fmt.Errorf("Cannot deserialize material, got error %w", err)
 	}
@@ -116,16 +119,19 @@ func (rm *RessourceManager) LoadEntity(id string, dat []byte) error {
 			if err := json.Unmarshal(c.Value, &rsMesh); err != nil {
 				return fmt.Errorf("cannot deserialize entity's mesh component : %w", err)
 			}
+			ent.mesh = &rsMesh
 		case "name":
 			var rsName RessourceNameComponent
 			if err := json.Unmarshal(c.Value, &rsName); err != nil {
 				return fmt.Errorf("cannot deserialize entity's name component : %w", err)
 			}
+			ent.name = &rsName
 		case "transform":
 			var rsTransform RessourceTransformComponent
 			if err := json.Unmarshal(c.Value, &rsTransform); err != nil {
 				return fmt.Errorf("cannot deserialize entity's transform component : %w", err)
 			}
+			ent.transform = &rsTransform
 		}
 	}
 
@@ -156,45 +162,39 @@ func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 	}
 
 	e := ctx.W.NewEntity()
-	for _, c := range ent.Components {
-		switch c.Type {
-		case "name":
-			var r RessourceNameComponent
-			json.Unmarshal(c.Value, &r)
-			ctx.W.NameStore.Upsert(e, NameComponent{Name: r.Name})
-		case "transform":
-			var r RessourceTransformComponent
-			json.Unmarshal(c.Value, &r)
-			ctx.W.TransformStore.Upsert(e, TransformComponent{
-				Position: Vector3{X: r.X, Y: r.Y, Z: r.Z},
-			})
-		case "mesh":
-			var r RessourceMeshComponent
-			json.Unmarshal(c.Value, &r)
-			mesh := rm.meshRessources[r.MeshId]
-			if mesh == nil {
-				return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown mesh id %s", id, r.MeshId)
-			}
-			var verts []types.PositionColorVertex = make([]types.PositionColorVertex, len(mesh.Vertices))
-			for i, v := range mesh.Vertices {
-				verts[i].X = v.X
-				verts[i].Y = v.Y
-				verts[i].Z = v.Z
-				verts[i].R = v.R
-				verts[i].G = v.G
-				verts[i].B = v.B
-				verts[i].A = v.A
-			}
-			material := rm.materialRessources[r.MaterialId]
-			if material == nil {
-				return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown material id %s", id, r.MaterialId)
-			}
-
-			pipelineName := "the pipeline"
-			pipelineId := rm.pipelines[pipelineName]
-
-			ctx.W.MeshStore.Upsert(e, NewMeshComponent(ctx, verts, pipelineId))
-		}
+	if ent.name != nil {
+		ctx.W.NameStore.Upsert(e, NameComponent{Name: ent.name.Name})
 	}
+	if ent.transform != nil {
+		ctx.W.TransformStore.Upsert(e, TransformComponent{
+			Position: Vector3{X: ent.transform.X, Y: ent.transform.Y, Z: ent.transform.Z},
+		})
+	}
+	if ent.mesh != nil {
+		mesh := rm.meshRessources[ent.mesh.MeshId]
+		if mesh == nil {
+			return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown mesh id %s", id, ent.mesh.MeshId)
+		}
+		var verts []types.PositionColorVertex = make([]types.PositionColorVertex, len(mesh.Vertices))
+		for i, v := range mesh.Vertices {
+			verts[i].X = v.X
+			verts[i].Y = v.Y
+			verts[i].Z = v.Z
+			verts[i].R = v.R
+			verts[i].G = v.G
+			verts[i].B = v.B
+			verts[i].A = v.A
+		}
+		material := rm.materialRessources[ent.mesh.MaterialId]
+		if material == nil {
+			return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown material id %s", id, ent.mesh.MaterialId)
+		}
+
+		pipelineName := "the pipeline"
+		pipelineId := rm.pipelines[pipelineName]
+
+		ctx.W.MeshStore.Upsert(e, NewMeshComponent(ctx, verts, pipelineId))
+	}
+
 	return e, nil
 }
