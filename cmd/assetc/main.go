@@ -44,12 +44,15 @@ func (c config) run(cmd string) error {
 		return c.sprites()
 	case "meshes":
 		return c.copyJSON("mesh")
+	case "materials":
+		return c.copyJSON("material")
 	case "entities":
 		return c.copyJSON("entity")
 	case "all":
 		for _, step := range []func() error{
 			c.shaders, c.sprites,
 			func() error { return c.copyJSON("mesh") },
+			func() error { return c.copyJSON("material") },
 			func() error { return c.copyJSON("entity") },
 		} {
 			if err := step(); err != nil {
@@ -58,7 +61,7 @@ func (c config) run(cmd string) error {
 		}
 		return nil
 	default:
-		return fmt.Errorf("unknown command %q (want: shaders, sprites, meshes, entities, all)", cmd)
+		return fmt.Errorf("unknown command %q (want: shaders, sprites, meshes, materials, entities, all)", cmd)
 	}
 }
 
@@ -66,6 +69,7 @@ func (c config) mkdirs() error {
 	for _, d := range []string{
 		filepath.Join(c.distDir, "asset", "shader"),
 		filepath.Join(c.distDir, "asset", "mesh"),
+		filepath.Join(c.distDir, "asset", "material"),
 		filepath.Join(c.distDir, "asset", "entity"),
 		filepath.Join(c.distDir, "asset", "sprite"),
 		filepath.Join(c.tmpDir, "sprite"),
