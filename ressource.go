@@ -23,15 +23,23 @@ type RessourceMesh struct {
 	Vertices []RessourceVertex `json:"vertices"`
 }
 
-type RessourceMeshId struct {
-	Id string `json:"id"`
+type RessourceMaterial struct {
+	Id             string `json:"id"`
+	VertexShader   string `json:"vertex_shader"`
+	FragmentShader string `json:"fragment_shader"`
+	VertexFormat   string `json:"vertex_format"`
 }
 
-type RessourceName struct {
+type RessourceMeshComponent struct {
+	MeshId     string `json:"mesh_id"`
+	MaterialId string `json:"material_id"`
+}
+
+type RessourceNameComponent struct {
 	Name string `json:"name"`
 }
 
-type RessourceTransform struct {
+type RessourceTransformComponent struct {
 	X float32 `json:"x"`
 	Y float32 `json:"y"`
 	Z float32 `json:"z"`
@@ -47,17 +55,20 @@ type ressourceEntity struct {
 }
 
 type RessourceManager struct {
-	meshRessources   map[string]*RessourceMesh
-	entityRessources map[string]*ressourceEntity
-	pipelines        map[string]backend.PipelineID
+	meshRessources     map[string]*RessourceMesh
+	materialRessources map[string]*RessourceMaterial
+	entityRessources   map[string]*ressourceEntity
+	pipelines          map[string]backend.PipelineID
+	vertexBuffers      map[string]backend.VertexBufferID
 }
 
 func NewRessourceManager() *RessourceManager {
-
 	return &RessourceManager{
-		meshRessources:   make(map[string]*RessourceMesh),
-		entityRessources: make(map[string]*ressourceEntity),
-		pipelines:        make(map[string]backend.PipelineID),
+		meshRessources:     make(map[string]*RessourceMesh),
+		materialRessources: make(map[string]*RessourceMaterial),
+		entityRessources:   make(map[string]*ressourceEntity),
+		pipelines:          make(map[string]backend.PipelineID),
+		vertexBuffers:      make(map[string]backend.VertexBufferID),
 	}
 }
 
@@ -71,6 +82,19 @@ func (rm *RessourceManager) LoadMesh(dat []byte) error {
 		return fmt.Errorf("mesh Id %s already exists", mesh.Id)
 	}
 	rm.meshRessources[mesh.Id] = &mesh
+	return nil
+}
+
+func (rm *RessourceManager) LoadMaterial(dat []byte) error {
+	var material RessourceMaterial
+	if err := json.Unmarshal(dat, &material); err != nil {
+		return fmt.Errorf("Cannot deserialize material, got error %w", err)
+	}
+	_, exists := rm.materialRessources[material.Id]
+	if exists {
+		return fmt.Errorf("material Id %s already exists", material.Id)
+	}
+	rm.materialRessources[material.Id] = &material
 	return nil
 }
 
@@ -88,17 +112,17 @@ func (rm *RessourceManager) LoadEntity(id string, dat []byte) error {
 	for _, c := range ent.Components {
 		switch c.Type {
 		case "mesh":
-			var rsMesh RessourceMeshId
+			var rsMesh RessourceMeshComponent
 			if err := json.Unmarshal(c.Value, &rsMesh); err != nil {
 				return fmt.Errorf("cannot deserialize entity's mesh component : %w", err)
 			}
 		case "name":
-			var rsName RessourceName
+			var rsName RessourceNameComponent
 			if err := json.Unmarshal(c.Value, &rsName); err != nil {
 				return fmt.Errorf("cannot deserialize entity's name component : %w", err)
 			}
 		case "transform":
-			var rsTransform RessourceTransform
+			var rsTransform RessourceTransformComponent
 			if err := json.Unmarshal(c.Value, &rsTransform); err != nil {
 				return fmt.Errorf("cannot deserialize entity's transform component : %w", err)
 			}
@@ -135,22 +159,21 @@ func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 	for _, c := range ent.Components {
 		switch c.Type {
 		case "name":
-			var r RessourceName
+			var r RessourceNameComponent
 			json.Unmarshal(c.Value, &r)
 			ctx.W.NameStore.Upsert(e, NameComponent{Name: r.Name})
 		case "transform":
-			var r RessourceTransform
+			var r RessourceTransformComponent
 			json.Unmarshal(c.Value, &r)
 			ctx.W.TransformStore.Upsert(e, TransformComponent{
 				Position: Vector3{X: r.X, Y: r.Y, Z: r.Z},
 			})
 		case "mesh":
-			var r RessourceMeshId
+			var r RessourceMeshComponent
 			json.Unmarshal(c.Value, &r)
-			// TODO, what if mesh is not found in cache ?
-			mesh := rm.meshRessources[r.Id] // resolve from cache
+			mesh := rm.meshRessources[r.MeshId]
 			if mesh == nil {
-				return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown mesh id %s", id, mesh.Id)
+				return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown mesh id %s", id, r.MeshId)
 			}
 			var verts []types.PositionColorVertex = make([]types.PositionColorVertex, len(mesh.Vertices))
 			for i, v := range mesh.Vertices {
@@ -161,6 +184,10 @@ func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 				verts[i].G = v.G
 				verts[i].B = v.B
 				verts[i].A = v.A
+			}
+			material := rm.materialRessources[r.MaterialId]
+			if material == nil {
+				return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown material id %s", id, r.MaterialId)
 			}
 
 			pipelineName := "the pipeline"
