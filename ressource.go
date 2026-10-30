@@ -51,9 +51,12 @@ type rawComponentEntry struct {
 }
 
 type ressourceEntity struct {
-	name       *RessourceNameComponent
-	mesh       *RessourceMeshComponent
-	transform  *RessourceTransformComponent
+	name      *RessourceNameComponent
+	mesh      *RessourceMeshComponent
+	transform *RessourceTransformComponent
+}
+
+type rawRessourceEntity struct {
 	Components []rawComponentEntry `json:"components"`
 }
 
@@ -107,12 +110,13 @@ func (rm *RessourceManager) LoadEntity(id string, dat []byte) error {
 		return fmt.Errorf("cannot load entity : id %s already exists", id)
 	}
 
-	var ent ressourceEntity
-	if err := json.Unmarshal(dat, &ent); err != nil {
+	var rawEnt rawRessourceEntity
+	if err := json.Unmarshal(dat, &rawEnt); err != nil {
 		return fmt.Errorf("cannot deserialize entity : %w", err)
 	}
+	var ent ressourceEntity
 
-	for _, c := range ent.Components {
+	for _, c := range rawEnt.Components {
 		switch c.Type {
 		case "mesh":
 			var rsMesh RessourceMeshComponent
