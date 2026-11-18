@@ -6,19 +6,21 @@ import (
 )
 
 type MeshComponent struct {
-	vb       backend.VertexBufferID
-	pipeline backend.PipelineID
+	vb           backend.VertexBufferID
+	material     types.MaterialID
+	vertexFormat types.VertexFormat
 	// TODO use it when implementing shared buffer between multiple entities
 	len    uint32
 	offset uint32
 }
 
-func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex, pipeline backend.PipelineID) MeshComponent {
+func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex, material types.MaterialID, vertexFormat types.VertexFormat) MeshComponent {
 	return MeshComponent{
-		vb:       ctx.gpu.CreateVertexBuffer(vertices),
-		pipeline: pipeline,
-		len:      uint32(len(vertices)),
-		offset:   0,
+		vb:           ctx.gpu.CreateVertexBuffer(vertices),
+		material:     material,
+		vertexFormat: vertexFormat,
+		len:          uint32(len(vertices)),
+		offset:       0,
 	}
 }
 
@@ -43,6 +45,9 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 	}
 
 	for e, mesh2dCpnt := range ctx.W.MeshStore.All() {
+		material := ctx.RM.materialRessources.Get(mesh2dCpnt.material)
+		pipeline := ctx.RM.pipelineFor(ctx, material, mesh2dCpnt.vertexFormat, &backend.PassDef{})
+
 		transform, err := ctx.W.TransformStore.Get(e)
 		var u mesh2dUniform
 		if err == nil {
@@ -53,7 +58,8 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 		areanaOff, arenaLen := pushUniform(&ctx.r, u)
 
 		ctx.r.cmds = append(ctx.r.cmds, backend.DrawCmd{
-			Pipeline:     mesh2dCpnt.pipeline,
+			Pipeline:     pipeline,
+			Material:     mesh2dCpnt.material,
 			VertexBuffer: mesh2dCpnt.vb,
 			ArenaOffset:  areanaOff,
 			ArenaLen:     arenaLen,

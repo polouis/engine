@@ -1,5 +1,7 @@
 package types
 
+import "github.com/polouis/engine/internal"
+
 type BackendType string
 
 const (
@@ -66,3 +68,9 @@ const (
 	ButtonFirst = ButtonUp
 	ButtonLast  = ButtonB
 )
+
+type EffectID uint32
+type MaterialID uint32
+
+const InvalidEffectId = internal.InvalidHandle
+const InvalidMaterialId = internal.InvalidHandle
