@@ -1,6 +1,9 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"unsafe"
+)
 
 type VertexFormat uint8
 
@@ -61,11 +64,12 @@ func (f VertexFormat) Layout() VertexLayout {
 	case VertexFormatInvalid:
 		panic("Cannot get layout from invalid vertex format")
 	case VertexFormatPositionColor:
+		var v PositionColorVertex
 		return VertexLayout{
-			Stride: 28,
+			Stride: uint32(unsafe.Sizeof(v)),
 			Attributes: []VertexAttribute{
-				{Location: 0, Format: VertexElementFormatFloat3, Offset: 0},
-				{Location: 1, Format: VertexElementFormatFloat4, Offset: 12},
+				{Location: 0, Format: VertexElementFormatFloat3, Offset: uint32(unsafe.Offsetof(v.X))},
+				{Location: 1, Format: VertexElementFormatUByte4_Norm, Offset: uint32(unsafe.Offsetof(v.R))},
 			},
 		}
 	default:
@@ -81,3 +85,11 @@ func ParseVertexFormat(name string) (VertexFormat, error) {
 		return VertexFormatInvalid, fmt.Errorf("Unhandled vertex format name %s", name)
 	}
 }
+
+type FillMode uint8
+
+const (
+	FillModeInvalid FillMode = iota
+	FillModeFill
+	FillModeLine
+)

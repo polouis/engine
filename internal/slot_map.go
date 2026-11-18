@@ -1,6 +1,9 @@
 package internal
 
-import "fmt"
+import (
+	"fmt"
+	"iter"
+)
 
 const (
 	idxBits       = 20
@@ -44,6 +47,10 @@ func (s *SlotMap[T, I]) resolve(id I) (*slot[T], uint32) {
 }
 
 func (s *SlotMap[T, I]) Alloc(value *T) I {
+	if value == nil {
+		panic(fmt.Errorf("slot map: cannot allocate a nil value"))
+	}
+
 	var idx uint32
 	if n := len(s.freeList); n > 0 {
 		idx = s.freeList[n-1]
@@ -74,4 +81,18 @@ func (s *SlotMap[T, I]) Free(id I) *T {
 	}
 	s.freeList = append(s.freeList, idx)
 	return value
+}
+
+func (s *SlotMap[T, I]) All() iter.Seq2[I, *T] {
+	return func(yield func(I, *T) bool) {
+		for i := range s.slots {
+			sl := &s.slots[i]
+			if sl.value == nil {
+				continue // freed slot
+			}
+			if !yield(makeID[I](uint32(i), sl.gen), sl.value) {
+				return
+			}
+		}
+	}
 }

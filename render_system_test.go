@@ -21,10 +21,10 @@ func TestRenderSystemSubmittedDrawCmds(t *testing.T) {
 
 	// Arbitrary, deliberately unsorted pipeline ids: the render system must group
 	// by pipeline regardless of the order entities are stored in.
-	mesh1 := NewMeshComponent(ctx, []types.PositionColorVertex{}, 2)
-	mesh2 := NewMeshComponent(ctx, []types.PositionColorVertex{}, 1)
-	mesh3 := NewMeshComponent(ctx, []types.PositionColorVertex{}, 3)
-	mesh4 := NewMeshComponent(ctx, []types.PositionColorVertex{}, 1)
+	mesh1 := NewMeshComponent(ctx, []types.PositionColorVertex{}, 2, types.VertexFormatPositionColor)
+	mesh2 := NewMeshComponent(ctx, []types.PositionColorVertex{}, 1, types.VertexFormatPositionColor)
+	mesh3 := NewMeshComponent(ctx, []types.PositionColorVertex{}, 3, types.VertexFormatPositionColor)
+	mesh4 := NewMeshComponent(ctx, []types.PositionColorVertex{}, 1, types.VertexFormatPositionColor)
 
 	ctx.W.MeshStore.Upsert(0, mesh1)
 	ctx.W.MeshStore.Upsert(1, mesh2)

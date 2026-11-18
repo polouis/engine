@@ -11,13 +11,15 @@ type Platform interface {
 
 type VertexBufferID uint32
 type PipelineID uint32
+type PassID uint32
 
 const InvalidPipeline = internal.InvalidHandle
 
 type PipelineDesc struct {
-	// VertexShader   string
-	// FragmentShader string
-	VertexFormat types.VertexFormat
+	// TODO replace shader string names by shader integer id or EffectId
+	VertexShader   string
+	FragmentShader string
+	VertexFormat   types.VertexFormat
 	// PrimitiveType  types.PrimitiveType
 	// the magic 0, 1, 0, 0 at pipeline.go:18 — part of the shader's interface
 	// VertexUniformBuffers uint32
@@ -27,8 +29,18 @@ type PipelineDesc struct {
 	// CullMode  types.CullMode
 }
 
+type PassDef struct {
+	id PassID
+	// targetFormat types.TextureFormat
+	fillMode types.FillMode
+	// depthTest    types.CompareOp
+	// Non-zero: use these shaders instead of the material's.
+	EffectOverride types.EffectID
+}
+
 type DrawCmd struct {
 	Pipeline     PipelineID
+	Material     types.MaterialID
 	VertexBuffer VertexBufferID
 	ArenaOffset  uint32
 	ArenaLen     uint32
