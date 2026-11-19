@@ -22,6 +22,7 @@ type BackendSDL struct {
 	cb *sdl.GPUCommandBuffer
 	rp *sdl.GPURenderPass
 
+	ss        internal.SlotMap[Shader, backend.ShaderID]
 	vbs       internal.SlotMap[BasicVertexBuffer, backend.VertexBufferID]
 	pipelines internal.SlotMap[BasicPipeline, backend.PipelineID]
 
@@ -164,12 +165,32 @@ func (b *BackendSDL) ReleaseVertexBuffer(id backend.VertexBufferID) {
 }
 
 /**
+ * Shader code
+ */
+
+func (b *BackendSDL) CreateShader(name string) backend.ShaderID {
+	var s Shader
+	err := s.init(b.device, name)
+	if err != nil {
+		panic("CreateShader: " + err.Error())
+	}
+	return b.ss.Alloc(&s)
+}
+
+func (b *BackendSDL) ReleaseShader(id backend.ShaderID) {
+	s := b.ss.Free(id)
+	s.release(b.device)
+}
+
+/**
  * Pipeline code
  */
 
 func (b *BackendSDL) CreatePipeline(desc backend.PipelineDesc) backend.PipelineID {
 	var p BasicPipeline
-	if err := p.Init(b.window, b.device); err != nil {
+	sdlVShader := b.ss.Lookup(desc.VertexShader)
+	sdlFShader := b.ss.Lookup(desc.FragmentShader)
+	if err := p.Init(b.window, b.device, sdlVShader.s, sdlFShader.s); err != nil {
 		panic("CreatePipeline: " + err.Error())
 	}
 	return b.pipelines.Alloc(&p)

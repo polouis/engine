@@ -12,23 +12,7 @@ type BasicPipeline struct {
 	pipeline *sdl.GPUGraphicsPipeline
 }
 
-func (p *BasicPipeline) Init(window *sdl.Window, device *sdl.GPUDevice) error {
-	// create shaders
-
-	vertexShader, err := loadShader(
-		device, "PositionColor.vert", 0, 1, 0, 0,
-	)
-	if err != nil {
-		panic("failed to create vertex shader: " + err.Error())
-	}
-
-	fragmentShader, err := loadShader(
-		device, "SolidColor.frag", 0, 0, 0, 0,
-	)
-	if err != nil {
-		panic("failed to create fragment shader: " + err.Error())
-	}
-
+func (p *BasicPipeline) Init(window *sdl.Window, device *sdl.GPUDevice, vShader *sdl.GPUShader, fShader *sdl.GPUShader) error {
 	// create pipelines
 
 	colorTargetDescriptions := []sdl.GPUColorTargetDescription{
@@ -70,17 +54,15 @@ func (p *BasicPipeline) Init(window *sdl.Window, device *sdl.GPUDevice) error {
 			VertexAttributes:         vertexAttributes,
 		},
 		PrimitiveType:  sdl.GPU_PRIMITIVETYPE_TRIANGLELIST,
-		VertexShader:   vertexShader,
-		FragmentShader: fragmentShader,
+		VertexShader:   vShader,
+		FragmentShader: fShader,
 	}
 
+	var err error
 	p.pipeline, err = device.CreateGraphicsPipeline(&pipelineCreateInfo)
 	if err != nil {
 		return errors.New("failed to create pipeline: " + err.Error())
 	}
-
-	device.ReleaseShader(vertexShader)
-	device.ReleaseShader(fragmentShader)
 
 	return nil
 }

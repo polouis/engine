@@ -12,13 +12,13 @@ type Platform interface {
 type VertexBufferID uint32
 type PipelineID uint32
 type PassID uint32
+type ShaderID uint32
 
 const InvalidPipeline = internal.InvalidHandle
 
 type PipelineDesc struct {
-	// TODO replace shader string names by shader integer id or EffectId
-	VertexShader   string
-	FragmentShader string
+	VertexShader   ShaderID
+	FragmentShader ShaderID
 	VertexFormat   types.VertexFormat
 	// PrimitiveType  types.PrimitiveType
 	// the magic 0, 1, 0, 0 at pipeline.go:18 — part of the shader's interface
@@ -56,6 +56,9 @@ type PassDesc struct {
 }
 
 type GPU interface {
+	CreateShader(name string) ShaderID
+	ReleaseShader(ShaderID)
+
 	CreatePipeline(PipelineDesc) PipelineID
 	ReleasePipeline(PipelineID)
 

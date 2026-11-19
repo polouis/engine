@@ -3,53 +3,60 @@ package backendsdl
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/polouis/engine/assets"
+	"github.com/polouis/engine/internal/shadermeta"
 )
 
-func loadShader(
-	device *sdl.GPUDevice,
-	shaderFilename string,
-	samplerCount uint32,
-	uniformBufferCount uint32,
-	storageBufferCount uint32,
-	storageTextureCount uint32,
-) (*sdl.GPUShader, error) {
-	var stage sdl.GPUShaderStage
-	if strings.Contains(shaderFilename, ".vert") {
-		stage = sdl.GPU_SHADERSTAGE_VERTEX
-	} else if strings.Contains(shaderFilename, ".frag") {
-		stage = sdl.GPU_SHADERSTAGE_FRAGMENT
-	} else {
-		return nil, errors.New("invalid shader stage")
+type Shader struct {
+	s *sdl.GPUShader
+}
+
+func (s *Shader) init(device *sdl.GPUDevice, shaderFilename string) error {
+	meta, err := shadermeta.Load(fmt.Sprintf("asset/shader/%s.json", shaderFilename))
+	if err != nil {
+		return fmt.Errorf("shader %s: %w", shaderFilename, err)
 	}
 
-	path := ""
-	backendFormats := device.ShaderFormats()
-	format := sdl.GPU_SHADERFORMAT_INVALID
-	entrypoint := ""
+	var stage sdl.GPUShaderStage
+	switch meta.Stage {
+	case shadermeta.StageVertex:
+		stage = sdl.GPU_SHADERSTAGE_VERTEX
+	case shadermeta.StageFragment:
+		stage = sdl.GPU_SHADERSTAGE_FRAGMENT
+	default:
+		return fmt.Errorf("shader %s: unhandled stage %q", shaderFilename, meta.Stage)
+	}
 
-	if backendFormats&sdl.GPU_SHADERFORMAT_SPIRV == sdl.GPU_SHADERFORMAT_SPIRV {
+	var (
+		path       string
+		format     sdl.GPUShaderFormat
+		entrypoint string
+	)
+	backendFormats := device.ShaderFormats()
+	switch {
+	case backendFormats&sdl.GPU_SHADERFORMAT_SPIRV != 0:
 		path = fmt.Sprintf("asset/shader/%s.spv", shaderFilename)
 		format = sdl.GPU_SHADERFORMAT_SPIRV
-		entrypoint = "main"
-	} else if backendFormats&sdl.GPU_SHADERFORMAT_MSL == sdl.GPU_SHADERFORMAT_MSL {
+		entrypoint = meta.Entrypoint
+	case backendFormats&sdl.GPU_SHADERFORMAT_MSL != 0:
 		path = fmt.Sprintf("asset/shader/%s.msl", shaderFilename)
 		format = sdl.GPU_SHADERFORMAT_MSL
+		// SPIRV-Cross renames the entry point when transpiling to MSL, so the
+		// reflected name does not apply to this format.
 		entrypoint = "main0"
-	} else if backendFormats&sdl.GPU_SHADERFORMAT_DXIL == sdl.GPU_SHADERFORMAT_DXIL {
+	case backendFormats&sdl.GPU_SHADERFORMAT_DXIL != 0:
 		path = fmt.Sprintf("asset/shader/%s.dxil", shaderFilename)
 		format = sdl.GPU_SHADERFORMAT_DXIL
-		entrypoint = "main"
-	} else {
-		return nil, errors.New("unrecognized backend shader format")
+		entrypoint = meta.Entrypoint
+	default:
+		return errors.New("unrecognized backend shader format")
 	}
 
 	code, err := assets.ReadFile(path)
 	if err != nil {
-		return nil, errors.New("failed to open shader: " + err.Error())
+		return errors.New("failed to open shader: " + err.Error())
 	}
 
 	shaderInfo := sdl.GPUShaderCreateInfo{
@@ -57,16 +64,23 @@ func loadShader(
 		Entrypoint:         entrypoint,
 		Format:             format,
 		Stage:              stage,
-		NumSamplers:        samplerCount,
-		NumUniformBuffers:  uniformBufferCount,
-		NumStorageBuffers:  storageBufferCount,
-		NumStorageTextures: storageTextureCount,
+		NumSamplers:        meta.NumSamplers,
+		NumUniformBuffers:  meta.NumUniformBuffers,
+		NumStorageBuffers:  meta.NumStorageBuffers,
+		NumStorageTextures: meta.NumStorageTextures,
 	}
 
 	shader, err := device.CreateGPUShader(&shaderInfo)
 	if err != nil {
-		return nil, errors.New("failed to create shader: " + err.Error())
+		return errors.New("failed to create shader: " + err.Error())
 	}
 
-	return shader, nil
+	s.s = shader
+
+	return nil
+}
+
+func (s Shader) release(device *sdl.GPUDevice) error {
+	device.ReleaseShader(s.s)
+	return nil
 }

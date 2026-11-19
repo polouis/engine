@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/polouis/engine/internal/shadermeta"
 )
 
 type config struct {
@@ -107,9 +109,32 @@ func (c config) shaders() error {
 			if err := sh(glslc, "-fshader-stage="+stage, "-o", out, in); err != nil {
 				return err
 			}
+			if err := reflectShader(out, stage); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
+}
+
+// reflectShader writes the sidecar metadata beside a compiled shader, so that
+// the runtime never has to be told a shader's resource counts: they are read
+// back out of the bytecode. wantStage is what the source filename claimed, and
+// a disagreement means the file is misnamed.
+func reflectShader(spvPath, wantStage string) error {
+	code, err := os.ReadFile(spvPath)
+	if err != nil {
+		return err
+	}
+	meta, err := shadermeta.Reflect(code)
+	if err != nil {
+		return fmt.Errorf("%s: %w", spvPath, err)
+	}
+	if string(meta.Stage) != wantStage {
+		return fmt.Errorf("%s: filename says the %s stage but the entry point is %s",
+			spvPath, wantStage, meta.Stage)
+	}
+	return meta.WriteFile(shadermeta.SidecarPath(spvPath))
 }
 
 // sprites: aseprite export + crunch atlas  (was asset_aseprite + asset_crunch)

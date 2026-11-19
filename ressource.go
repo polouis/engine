@@ -25,15 +25,6 @@ type ressourceMesh struct {
 	VertexFormat string            `json:"vertex_format"`
 }
 
-type ressourceEffect struct {
-	Name                 string `json:"name"`
-	VertexShader         string `json:"vertex_shader"`
-	FragmentShader       string `json:"fragment_shader"`
-	RequiresVertexFormat string `json:"position_color"`
-	VertexUniformBuffers uint8  `json:"vertex_uniform_buffers"`
-	FragmentSamplers     uint8  `jaon:"fragment_samplers"`
-}
-
 type ressourceMaterial struct {
 	Name   string `json:"name"`
 	Effect string `json:"effect"`
@@ -69,12 +60,18 @@ type rawRessourceEntity struct {
 	Components []rawComponentEntry `json:"components"`
 }
 
+type ressourceEffect struct {
+	name           string
+	vertexShader   backend.ShaderID
+	fragmentShader backend.ShaderID
+}
+
 type RessourceManager struct {
 	meshRessources     map[string]*ressourceMesh
 	entityRessources   map[string]*ressourceEntity
 	vertexBuffers      map[string]backend.VertexBufferID
 	materialRessources internal.Registry[ressourceMaterial, types.MaterialID]
-	effectRessources   internal.Registry[ressourceEffect, types.EffectID]
+	effects            internal.Registry[ressourceEffect, types.EffectID]
 	pipelines          map[backend.PipelineDesc]backend.PipelineID
 }
 
@@ -83,7 +80,7 @@ func NewRessourceManager() *RessourceManager {
 		meshRessources:     make(map[string]*ressourceMesh),
 		entityRessources:   make(map[string]*ressourceEntity),
 		vertexBuffers:      make(map[string]backend.VertexBufferID),
-		effectRessources:   internal.Registry[ressourceEffect, types.EffectID]{},
+		effects:            internal.Registry[ressourceEffect, types.EffectID]{},
 		materialRessources: internal.Registry[ressourceMaterial, types.MaterialID]{},
 		pipelines:          make(map[backend.PipelineDesc]backend.PipelineID),
 	}
@@ -103,12 +100,14 @@ func (rm *RessourceManager) LoadMesh(dat []byte) error {
 }
 
 func (rm *RessourceManager) LoadEffect(ctx *Context, dat []byte) error {
-	var effect ressourceEffect
-	if err := json.Unmarshal(dat, &effect); err != nil {
+	desc, err := LoadEffect(dat)
+	if err != nil {
 		return fmt.Errorf("Cannot deserialize effect, got error %w", err)
 	}
-
-	_, err := rm.effectRessources.Add(effect.Name, &effect)
+	vertexShader := ctx.gpu.CreateShader(desc.VertexShader)
+	fragmentShader := ctx.gpu.CreateShader(desc.FragmentShader)
+	effect := ressourceEffect{name: desc.Name, vertexShader: vertexShader, fragmentShader: fragmentShader}
+	_, err = rm.effects.Add(desc.Name, &effect)
 	return err
 }
 
@@ -124,8 +123,8 @@ func (rm *RessourceManager) LoadMaterial(ctx *Context, dat []byte) error {
 
 func resolvePipelineDesc(e *ressourceEffect, m *ressourceMaterial, vf types.VertexFormat, p *backend.PassDef) backend.PipelineDesc {
 	return backend.PipelineDesc{
-		VertexShader:   e.VertexShader,
-		FragmentShader: e.FragmentShader,
+		VertexShader:   e.vertexShader,
+		FragmentShader: e.fragmentShader,
 		VertexFormat:   types.VertexFormatPositionColor,
 	}
 }
@@ -133,10 +132,10 @@ func resolvePipelineDesc(e *ressourceEffect, m *ressourceMaterial, vf types.Vert
 func (rm *RessourceManager) pipelineFor(
 	ctx *Context, m *ressourceMaterial, vf types.VertexFormat, p *backend.PassDef,
 ) backend.PipelineID {
-	effectId, _ := rm.effectRessources.ID(m.Effect)
-	e := rm.effectRessources.Get(effectId)
+	effectId, _ := rm.effects.ID(m.Effect)
+	e := rm.effects.Get(effectId)
 	if p.EffectOverride != types.InvalidEffectId {
-		e = rm.effectRessources.Get(p.EffectOverride)
+		e = rm.effects.Get(p.EffectOverride)
 	}
 
 	desc := resolvePipelineDesc(e, m, vf, p) // pure function
@@ -192,6 +191,10 @@ func (rm *RessourceManager) Release(ctx *Context) {
 	for _, pipelineId := range rm.pipelines {
 		ctx.gpu.ReleasePipeline(pipelineId)
 	}
+	for _, effect := range rm.effects.All() {
+		ctx.gpu.ReleaseShader(effect.fragmentShader)
+		ctx.gpu.ReleaseShader(effect.vertexShader)
+	}
 }
 
 func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
@@ -229,7 +232,7 @@ func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 			return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown material id %s", id, ent.mesh.Material)
 		}
 		mat := rm.materialRessources.Get(matId)
-		_, exists = rm.effectRessources.ID(mat.Effect)
+		_, exists = rm.effects.ID(mat.Effect)
 		if !exists {
 			return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown effect id %s", id, mat.Effect)
 		}

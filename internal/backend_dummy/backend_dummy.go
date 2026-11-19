@@ -16,6 +16,7 @@ type Submission struct {
 type BackendDummy struct {
 	nextVB       backend.VertexBufferID
 	nextPipeline backend.PipelineID
+	nextShader   backend.ShaderID
 	Submissions  []Submission
 }
 
@@ -32,19 +33,22 @@ func (b *BackendDummy) CreateVertexBuffer(vbData []types.PositionColorVertex) ba
 	b.nextVB++
 	return b.nextVB
 }
-
 func (b *BackendDummy) ReleaseVertexBuffer(vb backend.VertexBufferID) {}
 
-func (b *BackendDummy) GetKeyState(k types.KeyType) bool { return false }
-
+func (b *BackendDummy) GetKeyState(k types.KeyType) bool         { return false }
 func (b *BackendDummy) GetButtonState(btn types.ButtonType) bool { return false }
 
 func (b *BackendDummy) CreatePipeline(desc backend.PipelineDesc) backend.PipelineID {
 	b.nextPipeline++
 	return b.nextPipeline
 }
-
 func (b *BackendDummy) ReleasePipeline(p backend.PipelineID) {}
+
+func (b *BackendDummy) CreateShader(name string) backend.ShaderID {
+	b.nextShader++
+	return b.nextShader
+}
+func (d *BackendDummy) ReleaseShader(s backend.ShaderID) {}
 
 func (b *BackendDummy) BeginPass(d backend.PassDesc) error {
 	return nil
