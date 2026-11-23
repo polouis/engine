@@ -1,6 +1,6 @@
 module github.com/polouis/engine
 
-go 1.25.1
+go 1.25
 
 require github.com/Zyko0/go-sdl3 v0.1.0
 
