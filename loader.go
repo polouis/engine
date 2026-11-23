@@ -10,8 +10,6 @@ type descEffect struct {
 	VertexShader   string `json:"vertex_shader"`
 	FragmentShader string `json:"fragment_shader"`
 	// RequiresVertexFormat string `json:"position_color"`
-	// VertexUniformBuffers uint8  `json:"vertex_uniform_buffers"`
-	// FragmentSamplers     uint8  `jaon:"fragment_samplers"`
 }
 
 func LoadEffect(dat []byte) (*descEffect, error) {
