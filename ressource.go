@@ -61,9 +61,10 @@ type rawRessourceEntity struct {
 }
 
 type ressourceEffect struct {
-	name           string
-	vertexShader   backend.ShaderID
-	fragmentShader backend.ShaderID
+	name                 string
+	vertexShader         backend.ShaderID
+	fragmentShader       backend.ShaderID
+	requiresVertexFormat types.VertexFormat
 }
 
 type RessourceManager struct {
@@ -104,11 +105,28 @@ func (rm *RessourceManager) LoadEffect(ctx *Context, dat []byte) error {
 	if err != nil {
 		return fmt.Errorf("Cannot deserialize effect, got error %w", err)
 	}
+	if desc.RequiresVertexFormat == "" {
+		return fmt.Errorf("effect %s does not declare requires_vertex_format", desc.Name)
+	}
+	rvf, err := types.ParseVertexFormat(desc.RequiresVertexFormat)
+	if err != nil {
+		return fmt.Errorf("effect %s: %w", desc.Name, err)
+	}
+
 	vertexShader := ctx.gpu.CreateShader(desc.VertexShader)
 	fragmentShader := ctx.gpu.CreateShader(desc.FragmentShader)
-	effect := ressourceEffect{name: desc.Name, vertexShader: vertexShader, fragmentShader: fragmentShader}
-	_, err = rm.effects.Add(desc.Name, &effect)
-	return err
+	effect := ressourceEffect{
+		name:                 desc.Name,
+		vertexShader:         vertexShader,
+		fragmentShader:       fragmentShader,
+		requiresVertexFormat: rvf,
+	}
+	if _, err := rm.effects.Add(desc.Name, &effect); err != nil {
+		ctx.gpu.ReleaseShader(vertexShader)
+		ctx.gpu.ReleaseShader(fragmentShader)
+		return err
+	}
+	return nil
 }
 
 func (rm *RessourceManager) LoadMaterial(ctx *Context, dat []byte) error {
@@ -125,7 +143,11 @@ func resolvePipelineDesc(e *ressourceEffect, m *ressourceMaterial, vf types.Vert
 	return backend.PipelineDesc{
 		VertexShader:   e.vertexShader,
 		FragmentShader: e.fragmentShader,
-		VertexFormat:   types.VertexFormatPositionColor,
+		// The mesh's actual layout, not the effect's requirement: this is what
+		// the pipeline's vertex input state is built from, so it has to
+		// describe the buffer that will be bound. Spawn is what guarantees the
+		// two agree.
+		VertexFormat: vf,
 	}
 }
 
@@ -232,14 +254,20 @@ func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 			return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown material id %s", id, ent.mesh.Material)
 		}
 		mat := rm.materialRessources.Get(matId)
-		_, exists = rm.effects.ID(mat.Effect)
+		effectId, exists := rm.effects.ID(mat.Effect)
 		if !exists {
 			return InvalidEntityID, fmt.Errorf("Cannot instanciate entity %s referencing unknown effect id %s", id, mat.Effect)
 		}
+		effect := rm.effects.Get(effectId)
 
 		vf, err := types.ParseVertexFormat(mesh.VertexFormat)
 		if err != nil {
 			return InvalidEntityID, err
+		}
+		if vf != effect.requiresVertexFormat {
+			return InvalidEntityID, fmt.Errorf(
+				"cannot instanciate entity %s: mesh %s has vertex format %s, but material %s uses effect %s, which requires %s",
+				id, ent.mesh.Mesh, vf, ent.mesh.Material, mat.Effect, effect.requiresVertexFormat)
 		}
 		ctx.W.MeshStore.Upsert(e, NewMeshComponent(ctx, verts, matId, vf))
 	}

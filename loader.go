@@ -6,10 +6,10 @@ import (
 )
 
 type descEffect struct {
-	Name           string `json:"name"`
-	VertexShader   string `json:"vertex_shader"`
-	FragmentShader string `json:"fragment_shader"`
-	// RequiresVertexFormat string `json:"position_color"`
+	Name                 string `json:"name"`
+	VertexShader         string `json:"vertex_shader"`
+	FragmentShader       string `json:"fragment_shader"`
+	RequiresVertexFormat string `json:"requires_vertex_format"`
 }
 
 func LoadEffect(dat []byte) (*descEffect, error) {

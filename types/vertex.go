@@ -77,6 +77,17 @@ func (f VertexFormat) Layout() VertexLayout {
 	}
 }
 
+func (f VertexFormat) String() string {
+	switch f {
+	case VertexFormatPositionColor:
+		return "position_color"
+	case VertexFormatInvalid:
+		return "invalid"
+	default:
+		return fmt.Sprintf("VertexFormat(%d)", uint8(f))
+	}
+}
+
 func ParseVertexFormat(name string) (VertexFormat, error) {
 	switch name {
 	case "position_color":
