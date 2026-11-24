@@ -15,8 +15,10 @@ type MeshComponent struct {
 }
 
 func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex, material types.MaterialID, vertexFormat types.VertexFormat) MeshComponent {
+	vb := ctx.gpu.CreateVertexBuffer(vertexFormat.Layout().Stride, len(vertices))
+	backend.UploadVertices(ctx.gpu, vb, vertices)
 	return MeshComponent{
-		vb:           ctx.gpu.CreateVertexBuffer(vertices),
+		vb:           vb,
 		material:     material,
 		vertexFormat: vertexFormat,
 		len:          uint32(len(vertices)),

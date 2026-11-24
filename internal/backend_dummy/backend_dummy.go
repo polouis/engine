@@ -29,11 +29,12 @@ func (b *BackendDummy) Run(initCallback func(), updateCallback func(uint64), rel
 	return nil
 }
 
-func (b *BackendDummy) CreateVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
+func (b *BackendDummy) CreateVertexBuffer(vertexCount uint32, maxSize int) backend.VertexBufferID {
 	b.nextVB++
 	return b.nextVB
 }
-func (b *BackendDummy) ReleaseVertexBuffer(vb backend.VertexBufferID) {}
+func (b *BackendDummy) UploadVertexBuffer(id backend.VertexBufferID, data []byte) error { return nil }
+func (b *BackendDummy) ReleaseVertexBuffer(vb backend.VertexBufferID)                   {}
 
 func (b *BackendDummy) GetKeyState(k types.KeyType) bool         { return false }
 func (b *BackendDummy) GetButtonState(btn types.ButtonType) bool { return false }

@@ -96,11 +96,3 @@ func ParseVertexFormat(name string) (VertexFormat, error) {
 		return VertexFormatInvalid, fmt.Errorf("Unhandled vertex format name %s", name)
 	}
 }
-
-type FillMode uint8
-
-const (
-	FillModeInvalid FillMode = iota
-	FillModeFill
-	FillModeLine
-)

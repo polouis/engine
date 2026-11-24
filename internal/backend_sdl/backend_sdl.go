@@ -151,12 +151,20 @@ func (b *BackendSDL) update(getDeltaTime func(uint64) uint64, updateCallback fun
  * Vertex buffer code
  */
 
-func (b *BackendSDL) CreateVertexBuffer(vbData []types.PositionColorVertex) backend.VertexBufferID {
+func (b *BackendSDL) CreateVertexBuffer(vertexSize uint32, maxLen int) backend.VertexBufferID {
 	var vb BasicVertexBuffer
-	if err := vb.Init(b.window, b.device, vbData); err != nil {
+	if err := vb.Create(b.window, b.device, vertexSize, uint32(maxLen)); err != nil {
 		panic("CreateVertexBuffer: " + err.Error())
 	}
 	return b.vbs.Alloc(&vb)
+}
+
+func (b *BackendSDL) UploadVertexBuffer(id backend.VertexBufferID, data []byte) error {
+	vbSdl := b.vbs.Lookup(id)
+	if vbSdl == nil {
+		return fmt.Errorf("LoadVertexBuffer: unknown vb id %d", id)
+	}
+	return vbSdl.Upload(b.device, data)
 }
 
 func (b *BackendSDL) ReleaseVertexBuffer(id backend.VertexBufferID) {

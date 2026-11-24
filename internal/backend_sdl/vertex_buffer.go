@@ -13,27 +13,27 @@ type BasicVertexBuffer struct {
 	len          uint32
 }
 
-func (vb *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbData []types.PositionColorVertex) error {
+func (vb *BasicVertexBuffer) Create(window *sdl.Window, device *sdl.GPUDevice, vertexSize uint32, maxLen uint32) error {
 
-	vb.len = uint32(len(vbData))
+	vb.len = maxLen
 
 	var err error
 
-	// create vertex buffer
-
 	vb.vertexBuffer, err = device.CreateBuffer(&sdl.GPUBufferCreateInfo{
 		Usage: sdl.GPU_BUFFERUSAGE_VERTEX,
-		Size:  uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(vbData))),
+		Size:  vertexSize * maxLen,
 	})
 	if err != nil {
 		return errors.New("failed to create buffer: " + err.Error())
 	}
+	return nil
+}
 
-	// to get data into the vertex buffer, we have to use a transfer buffer
+func (vb *BasicVertexBuffer) Upload(device *sdl.GPUDevice, data []byte) error {
 
 	transferBuffer, err := device.CreateTransferBuffer(&sdl.GPUTransferBufferCreateInfo{
 		Usage: sdl.GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-		Size:  uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(vbData))),
+		Size:  uint32(len(data)),
 	})
 	if err != nil {
 		return errors.New("failed to create transfer buffer: " + err.Error())
@@ -44,13 +44,8 @@ func (vb *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbD
 		return errors.New("failed to map transfer buffer: " + err.Error())
 	}
 
-	vertexData := unsafe.Slice(
-		(*types.PositionColorVertex)(unsafe.Pointer(transferDataPtr)), len(vbData),
-	)
-
-	for i := 0; i < len(vbData); i++ {
-		vertexData[i] = vbData[i]
-	}
+	vertexData := unsafe.Slice((*byte)(unsafe.Pointer(transferDataPtr)), len(data))
+	copy(vertexData, data)
 
 	device.UnmapTransferBuffer(transferBuffer)
 
@@ -71,7 +66,7 @@ func (vb *BasicVertexBuffer) Init(window *sdl.Window, device *sdl.GPUDevice, vbD
 		&sdl.GPUBufferRegion{
 			Buffer: vb.vertexBuffer,
 			Offset: 0,
-			Size:   uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(vbData))),
+			Size:   uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(data))),
 		},
 		false,
 	)

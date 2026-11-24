@@ -1,6 +1,8 @@
 package backend
 
 import (
+	"unsafe"
+
 	"github.com/polouis/engine/internal"
 	"github.com/polouis/engine/types"
 )
@@ -13,6 +15,13 @@ type VertexBufferID uint32
 type PipelineID uint32
 type PassID uint32
 type ShaderID uint32
+type FillMode uint8
+
+const (
+	FillModeInvalid FillMode = iota
+	FillModeFill
+	FillModeLine
+)
 
 const InvalidPipeline = internal.InvalidHandle
 
@@ -32,7 +41,7 @@ type PipelineDesc struct {
 type PassDef struct {
 	id PassID
 	// targetFormat types.TextureFormat
-	fillMode types.FillMode
+	fillMode FillMode
 	// depthTest    types.CompareOp
 	// Non-zero: use these shaders instead of the material's.
 	EffectOverride types.EffectID
@@ -62,13 +71,27 @@ type GPU interface {
 	CreatePipeline(PipelineDesc) PipelineID
 	ReleasePipeline(PipelineID)
 
-	CreateVertexBuffer([]types.PositionColorVertex) VertexBufferID
+	CreateVertexBuffer(stride uint32, maxLen int) VertexBufferID
+	UploadVertexBuffer(VertexBufferID, []byte) error
 	ReleaseVertexBuffer(VertexBufferID)
 
 	BeginPass(PassDesc) error
 	Submit(cmds []DrawCmd, frameArena []byte)
 	EndPass()
 	SubmitCommandBuffer()
+}
+
+func UploadVertices[T any](gpu GPU, id VertexBufferID, vertices []T) error {
+
+	if len(vertices) == 0 {
+		return nil
+	}
+
+	var zero T
+	byteSize := len(vertices) * int(unsafe.Sizeof(zero))
+
+	rawBytes := unsafe.Slice((*byte)(unsafe.Pointer(&vertices[0])), byteSize)
+	return gpu.UploadVertexBuffer(id, rawBytes)
 }
 
 type Input interface {
