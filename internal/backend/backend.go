@@ -53,9 +53,8 @@ type DrawCmd struct {
 	VertexBuffer VertexBufferID
 	ArenaOffset  uint32
 	ArenaLen     uint32
-	// TODO implement VB sharing
-	// VBIndex      uint32
-	// VBLen        uint32
+	VBOffset     uint32
+	VBLen        uint32
 	// TODO implement render state sorting
 	// SortKey      uint64 // pass | pipeline | material | depth
 }
@@ -72,7 +71,7 @@ type GPU interface {
 	ReleasePipeline(PipelineID)
 
 	CreateVertexBuffer(stride uint32, maxLen int) VertexBufferID
-	UploadVertexBuffer(VertexBufferID, []byte) error
+	UploadVertexBuffer(id VertexBufferID, data []byte, l uint32) error
 	ReleaseVertexBuffer(VertexBufferID)
 
 	BeginPass(PassDesc) error
@@ -81,7 +80,7 @@ type GPU interface {
 	SubmitCommandBuffer()
 }
 
-func UploadVertices[T any](gpu GPU, id VertexBufferID, vertices []T) error {
+func UploadVertices[T any](gpu GPU, id VertexBufferID, vertices []T, l uint32) error {
 
 	if len(vertices) == 0 {
 		return nil
@@ -91,7 +90,7 @@ func UploadVertices[T any](gpu GPU, id VertexBufferID, vertices []T) error {
 	byteSize := len(vertices) * int(unsafe.Sizeof(zero))
 
 	rawBytes := unsafe.Slice((*byte)(unsafe.Pointer(&vertices[0])), byteSize)
-	return gpu.UploadVertexBuffer(id, rawBytes)
+	return gpu.UploadVertexBuffer(id, rawBytes, l)
 }
 
 type Input interface {

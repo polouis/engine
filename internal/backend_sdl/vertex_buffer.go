@@ -5,23 +5,23 @@ import (
 	"unsafe"
 
 	"github.com/Zyko0/go-sdl3/sdl"
-	"github.com/polouis/engine/types"
 )
 
 type BasicVertexBuffer struct {
 	vertexBuffer *sdl.GPUBuffer
-	len          uint32
+	maxLen       uint32
+	stride       uint32
 }
 
-func (vb *BasicVertexBuffer) Create(window *sdl.Window, device *sdl.GPUDevice, vertexSize uint32, maxLen uint32) error {
+func (vb *BasicVertexBuffer) Create(window *sdl.Window, device *sdl.GPUDevice, stride uint32, maxLen uint32) error {
 
-	vb.len = maxLen
+	vb.maxLen = maxLen
+	vb.stride = stride
 
 	var err error
-
 	vb.vertexBuffer, err = device.CreateBuffer(&sdl.GPUBufferCreateInfo{
 		Usage: sdl.GPU_BUFFERUSAGE_VERTEX,
-		Size:  vertexSize * maxLen,
+		Size:  stride * maxLen,
 	})
 	if err != nil {
 		return errors.New("failed to create buffer: " + err.Error())
@@ -29,7 +29,7 @@ func (vb *BasicVertexBuffer) Create(window *sdl.Window, device *sdl.GPUDevice, v
 	return nil
 }
 
-func (vb *BasicVertexBuffer) Upload(device *sdl.GPUDevice, data []byte) error {
+func (vb *BasicVertexBuffer) Upload(device *sdl.GPUDevice, data []byte, l uint32) error {
 
 	transferBuffer, err := device.CreateTransferBuffer(&sdl.GPUTransferBufferCreateInfo{
 		Usage: sdl.GPU_TRANSFERBUFFERUSAGE_UPLOAD,
@@ -66,7 +66,7 @@ func (vb *BasicVertexBuffer) Upload(device *sdl.GPUDevice, data []byte) error {
 		&sdl.GPUBufferRegion{
 			Buffer: vb.vertexBuffer,
 			Offset: 0,
-			Size:   uint32(unsafe.Sizeof(types.PositionColorVertex{}) * uintptr(len(data))),
+			Size:   vb.stride * l,
 		},
 		false,
 	)
@@ -78,12 +78,12 @@ func (vb *BasicVertexBuffer) Upload(device *sdl.GPUDevice, data []byte) error {
 	return nil
 }
 
-func (vb *BasicVertexBuffer) draw(renderPass *sdl.GPURenderPass) error {
+func (vb *BasicVertexBuffer) draw(renderPass *sdl.GPURenderPass, index uint32, l uint32) error {
 
 	renderPass.BindVertexBuffers([]sdl.GPUBufferBinding{
 		{Buffer: vb.vertexBuffer, Offset: 0},
 	})
-	renderPass.DrawPrimitives(vb.len, 1, 0, 0)
+	renderPass.DrawPrimitives(l, 1, index, 0)
 
 	return nil
 }

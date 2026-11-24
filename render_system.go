@@ -9,14 +9,13 @@ type MeshComponent struct {
 	vb           backend.VertexBufferID
 	material     types.MaterialID
 	vertexFormat types.VertexFormat
-	// TODO use it when implementing shared buffer between multiple entities
-	len    uint32
-	offset uint32
+	len          uint32
+	offset       uint32
 }
 
 func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex, material types.MaterialID, vertexFormat types.VertexFormat) MeshComponent {
 	vb := ctx.gpu.CreateVertexBuffer(vertexFormat.Layout().Stride, len(vertices))
-	backend.UploadVertices(ctx.gpu, vb, vertices)
+	backend.UploadVertices(ctx.gpu, vb, vertices, uint32(len(vertices)))
 	return MeshComponent{
 		vb:           vb,
 		material:     material,
@@ -65,6 +64,8 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 			VertexBuffer: mesh2dCpnt.vb,
 			ArenaOffset:  areanaOff,
 			ArenaLen:     arenaLen,
+			VBOffset:     mesh2dCpnt.offset,
+			VBLen:        mesh2dCpnt.len,
 		})
 	}
 

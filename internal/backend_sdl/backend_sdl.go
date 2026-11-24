@@ -159,12 +159,12 @@ func (b *BackendSDL) CreateVertexBuffer(vertexSize uint32, maxLen int) backend.V
 	return b.vbs.Alloc(&vb)
 }
 
-func (b *BackendSDL) UploadVertexBuffer(id backend.VertexBufferID, data []byte) error {
+func (b *BackendSDL) UploadVertexBuffer(id backend.VertexBufferID, data []byte, l uint32) error {
 	vbSdl := b.vbs.Lookup(id)
 	if vbSdl == nil {
 		return fmt.Errorf("LoadVertexBuffer: unknown vb id %d", id)
 	}
-	return vbSdl.Upload(b.device, data)
+	return vbSdl.Upload(b.device, data, l)
 }
 
 func (b *BackendSDL) ReleaseVertexBuffer(id backend.VertexBufferID) {
@@ -238,9 +238,8 @@ func (b *BackendSDL) Submit(cmds []backend.DrawCmd, frameArena []byte) {
 		u := frameArena[drawCmd.ArenaOffset : drawCmd.ArenaOffset+drawCmd.ArenaLen]
 		b.cb.PushVertexUniformData(0, u)
 
-		// TODO change this to share VB and pass index and len
 		vbSdl := b.vbs.Lookup(drawCmd.VertexBuffer)
-		vbSdl.draw(b.rp)
+		vbSdl.draw(b.rp, drawCmd.VBOffset, drawCmd.VBLen)
 	}
 }
 
