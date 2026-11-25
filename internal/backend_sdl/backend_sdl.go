@@ -159,10 +159,10 @@ func (b *BackendSDL) CreateVertexBuffer(vertexSize uint32, maxLen int) backend.V
 	return b.vbs.Alloc(&vb)
 }
 
-func (b *BackendSDL) UploadVertexBuffer(id backend.VertexBufferID, data []byte, l uint32) error {
+func (b *BackendSDL) UploadVertexBuffer(id backend.VertexBufferID, data []byte, l uint32) (uint32, error) {
 	vbSdl := b.vbs.Lookup(id)
 	if vbSdl == nil {
-		return fmt.Errorf("LoadVertexBuffer: unknown vb id %d", id)
+		return 0, fmt.Errorf("LoadVertexBuffer: unknown vb id %d", id)
 	}
 	return vbSdl.Upload(b.device, data, l)
 }

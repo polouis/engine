@@ -13,15 +13,20 @@ type MeshComponent struct {
 	offset       uint32
 }
 
-func NewMeshComponent(ctx *Context, vertices []types.PositionColorVertex, material types.MaterialID, vertexFormat types.VertexFormat) MeshComponent {
-	vb := ctx.gpu.CreateVertexBuffer(vertexFormat.Layout().Stride, len(vertices))
-	backend.UploadVertices(ctx.gpu, vb, vertices, uint32(len(vertices)))
+func NewMeshComponent(
+	ctx *Context,
+	vb backend.VertexBufferID,
+	material types.MaterialID,
+	vertexFormat types.VertexFormat,
+	offset uint32,
+	l uint32,
+) MeshComponent {
 	return MeshComponent{
 		vb:           vb,
 		material:     material,
 		vertexFormat: vertexFormat,
-		len:          uint32(len(vertices)),
-		offset:       0,
+		offset:       offset,
+		len:          l,
 	}
 }
 
@@ -77,7 +82,4 @@ func UpdateRenderSystem(ctx *Context, deltatime uint64) {
 }
 
 func ReleaseRenderSystem(ctx *Context) {
-	for _, mesh2dCpnt := range ctx.W.MeshStore.All() {
-		ctx.gpu.ReleaseVertexBuffer(mesh2dCpnt.vb)
-	}
 }

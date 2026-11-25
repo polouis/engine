@@ -33,8 +33,8 @@ func (b *BackendDummy) CreateVertexBuffer(vertexCount uint32, maxSize int) backe
 	b.nextVB++
 	return b.nextVB
 }
-func (b *BackendDummy) UploadVertexBuffer(id backend.VertexBufferID, data []byte, l uint32) error {
-	return nil
+func (b *BackendDummy) UploadVertexBuffer(id backend.VertexBufferID, data []byte, l uint32) (uint32, error) {
+	return 0, nil
 }
 func (b *BackendDummy) ReleaseVertexBuffer(vb backend.VertexBufferID) {}
 

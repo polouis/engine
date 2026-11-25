@@ -71,7 +71,7 @@ type GPU interface {
 	ReleasePipeline(PipelineID)
 
 	CreateVertexBuffer(stride uint32, maxLen int) VertexBufferID
-	UploadVertexBuffer(id VertexBufferID, data []byte, l uint32) error
+	UploadVertexBuffer(id VertexBufferID, data []byte, l uint32) (uint32, error)
 	ReleaseVertexBuffer(VertexBufferID)
 
 	BeginPass(PassDesc) error
@@ -80,10 +80,10 @@ type GPU interface {
 	SubmitCommandBuffer()
 }
 
-func UploadVertices[T any](gpu GPU, id VertexBufferID, vertices []T, l uint32) error {
+func UploadVertices[T any](gpu GPU, id VertexBufferID, vertices []T, l uint32) (uint32, error) {
 
 	if len(vertices) == 0 {
-		return nil
+		return 0, nil
 	}
 
 	var zero T

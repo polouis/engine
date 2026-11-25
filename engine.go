@@ -33,6 +33,7 @@ func New(bt types.BackendType) *Context {
 
 func initCtxBindingCallback(ctx *Context, initCallback func(*Context)) func() {
 	return func() {
+		ctx.RM.Init(ctx)
 		initCallback(ctx)
 	}
 }
@@ -46,6 +47,8 @@ func updateCtxBindingCallback(ctx *Context, updateCallback func(*Context, uint64
 func releaseCtxBindingCallback(ctx *Context, releaseCallback func(*Context)) func() {
 	return func() {
 		releaseCallback(ctx)
+		ReleaseRenderSystem(ctx)
+		ctx.RM.Release(ctx)
 	}
 }
 

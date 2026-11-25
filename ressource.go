@@ -19,6 +19,12 @@ type RessourceVertex struct {
 	A uint8   `json:"a"`
 }
 
+type meshRange struct {
+	vb     backend.VertexBufferID
+	offset uint32
+	len    uint32
+}
+
 type ressourceMesh struct {
 	Name         string            `json:"name"`
 	Vertices     []RessourceVertex `json:"vertices"`
@@ -67,10 +73,15 @@ type ressourceEffect struct {
 	requiresVertexFormat types.VertexFormat
 }
 
+type vertexPool struct {
+	vb backend.VertexBufferID
+}
+
 type RessourceManager struct {
+	meshRanges         map[string]*meshRange
 	meshRessources     map[string]*ressourceMesh
+	vbPools            map[types.VertexFormat]*vertexPool
 	entityRessources   map[string]*ressourceEntity
-	vertexBuffers      map[string]backend.VertexBufferID
 	materialRessources internal.Registry[ressourceMaterial, types.MaterialID]
 	effects            internal.Registry[ressourceEffect, types.EffectID]
 	pipelines          map[backend.PipelineDesc]backend.PipelineID
@@ -78,13 +89,21 @@ type RessourceManager struct {
 
 func NewRessourceManager() *RessourceManager {
 	return &RessourceManager{
+		meshRanges:         make(map[string]*meshRange),
 		meshRessources:     make(map[string]*ressourceMesh),
+		vbPools:            make(map[types.VertexFormat]*vertexPool),
 		entityRessources:   make(map[string]*ressourceEntity),
-		vertexBuffers:      make(map[string]backend.VertexBufferID),
 		effects:            internal.Registry[ressourceEffect, types.EffectID]{},
 		materialRessources: internal.Registry[ressourceMaterial, types.MaterialID]{},
 		pipelines:          make(map[backend.PipelineDesc]backend.PipelineID),
 	}
+}
+
+func (rm *RessourceManager) Init(ctx *Context) error {
+	rm.vbPools[types.VertexFormatPositionColor] = &vertexPool{
+		vb: ctx.gpu.CreateVertexBuffer(types.VertexFormatPositionColor.Layout().Stride, 10000),
+	}
+	return nil
 }
 
 func (rm *RessourceManager) LoadMesh(dat []byte) error {
@@ -217,6 +236,9 @@ func (rm *RessourceManager) Release(ctx *Context) {
 		ctx.gpu.ReleaseShader(effect.fragmentShader)
 		ctx.gpu.ReleaseShader(effect.vertexShader)
 	}
+	for _, vbPool := range rm.vbPools {
+		ctx.gpu.ReleaseVertexBuffer(vbPool.vb)
+	}
 }
 
 func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
@@ -269,7 +291,26 @@ func (rm *RessourceManager) Spawn(ctx *Context, id string) (EntityID, error) {
 				"cannot instanciate entity %s: mesh %s has vertex format %s, but material %s uses effect %s, which requires %s",
 				id, ent.mesh.Mesh, vf, ent.mesh.Material, mat.Effect, effect.requiresVertexFormat)
 		}
-		ctx.W.MeshStore.Upsert(e, NewMeshComponent(ctx, verts, matId, vf))
+
+		mr, exists := rm.meshRanges[mesh.Name]
+		if !exists {
+			vbPool, exists := rm.vbPools[vf]
+			if !exists {
+				return InvalidEntityID, fmt.Errorf("Missing VB pool for format %s", vf.String())
+			}
+			offset, err := backend.UploadVertices(ctx.gpu, vbPool.vb, verts, uint32(len(verts)))
+			if err != nil {
+				return InvalidEntityID, fmt.Errorf("Failed to upload vertices to GPU for entity %s and mesh %s", id, mesh.Name)
+			}
+			mr = &meshRange{
+				vb:     vbPool.vb,
+				offset: offset,
+				len:    uint32(len(verts)),
+			}
+			rm.meshRanges[mesh.Name] = mr
+		}
+
+		ctx.W.MeshStore.Upsert(e, NewMeshComponent(ctx, mr.vb, matId, vf, mr.offset, mr.len))
 	}
 
 	return e, nil

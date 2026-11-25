@@ -72,10 +72,10 @@ func TestRenderSystemSubmittedDrawCmds(t *testing.T) {
 			pipeline1, pipeline2, pipeline3)
 	}
 
-	mesh1 := NewMeshComponent(ctx, []types.PositionColorVertex{}, materialId2, types.VertexFormatPositionColor)
-	mesh2 := NewMeshComponent(ctx, []types.PositionColorVertex{}, materialId1, types.VertexFormatPositionColor)
-	mesh3 := NewMeshComponent(ctx, []types.PositionColorVertex{}, materialId3, types.VertexFormatPositionColor)
-	mesh4 := NewMeshComponent(ctx, []types.PositionColorVertex{}, materialId1, types.VertexFormatPositionColor)
+	mesh1 := NewMeshComponent(ctx, 1, materialId2, types.VertexFormatPositionColor, 0, 3)
+	mesh2 := NewMeshComponent(ctx, 1, materialId1, types.VertexFormatPositionColor, 0, 3)
+	mesh3 := NewMeshComponent(ctx, 1, materialId3, types.VertexFormatPositionColor, 0, 3)
+	mesh4 := NewMeshComponent(ctx, 1, materialId1, types.VertexFormatPositionColor, 0, 3)
 
 	ctx.W.MeshStore.Upsert(0, mesh1)
 	ctx.W.MeshStore.Upsert(1, mesh2)
